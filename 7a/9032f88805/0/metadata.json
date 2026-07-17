@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_id": "7a9032f88805",
+  "session_id": "1027db61-9213-4cc0-bcf0-b4b8a5f60b4e",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-17T14:13:58.796747Z",
+  "branch": "webhook-dead-letter-metrics-delivery-id",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "migrations/002_webhook_dead_letters.sql",
+    "migrations/003_charge_outcome_counts.sql",
+    "tests/conftest.py",
+    "README.md",
+    "src/orbit/billing/dead_letter.py",
+    "src/orbit/billing/metrics.py",
+    "src/orbit/billing/webhooks.py",
+    "src/orbit/billing/worker.py",
+    "src/orbit/api/routes.py",
+    "tests/billing/test_webhooks.py",
+    "tests/billing/test_worker.py",
+    "tests/billing/test_dead_letter.py",
+    "tests/billing/test_metrics.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "2cccb8766898",
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 118319,
+    "cache_read_tokens": 5128798,
+    "output_tokens": 44862,
+    "api_call_count": 49
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-17T14:13:58.77321Z",
+    "agent_lines": 530,
+    "agent_removed": 37,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 530,
+    "total_lines_changed": 567,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 84,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84
+      }
+    }
+  ]
+}

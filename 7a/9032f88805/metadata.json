@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "7a9032f88805",
+  "strategy": "manual-commit",
+  "branch": "webhook-dead-letter-metrics-delivery-id",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "migrations/002_webhook_dead_letters.sql",
+    "migrations/003_charge_outcome_counts.sql",
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/dead_letter.py",
+    "src/orbit/billing/metrics.py",
+    "src/orbit/billing/webhooks.py",
+    "src/orbit/billing/worker.py",
+    "tests/billing/test_dead_letter.py",
+    "tests/billing/test_metrics.py",
+    "tests/billing/test_webhooks.py",
+    "tests/billing/test_worker.py",
+    "tests/conftest.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7a/9032f88805/0/metadata.json",
+      "transcript": "/7a/9032f88805/0/full.jsonl",
+      "compact_transcript": "/7a/9032f88805/0/transcript.jsonl",
+      "content_hash": "/7a/9032f88805/0/content_hash.txt",
+      "prompt": "/7a/9032f88805/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 118319,
+    "cache_read_tokens": 5128798,
+    "output_tokens": 44862,
+    "api_call_count": 49
+  }
+}

@@ -1,0 +1,15 @@
+A few things to get through on Orbit this afternoon. Work through them in order, on one feature branch off main (`git checkout main && git pull` first).
+
+**1.** Webhook events that exhaust all their retry attempts currently just vanish into a log line. Add a dead-letter table for them, and a `GET /webhooks/dead-letter` endpoint to list what's in it, so support can see what got dropped.
+
+**2.** We have no idea how many charges succeed vs fail. Add counters for charge outcomes by day and a `GET /metrics/charges` endpoint exposing them.
+
+**3.** The provider changed their webhook payload — it now includes a `delivery_id` field. It's unique per delivery attempt, so a redelivery of the same event arrives with a different `delivery_id` each time. Thread it through the webhook path so every log line for a webhook carries its `delivery_id` — support wants to trace a single delivery end to end without guessing.
+
+**4.** While you're in there: the webhook processing path has grown organically across a few PRs now and it's getting hard to follow. Tidy it up so the flow reads cleanly from receipt through to settlement.
+
+**5.** Tests for all of the above.
+
+When you're done, commit and open a PR with `gh pr create` describing what changed.
+
+Do not push to main.
