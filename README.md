@@ -24,6 +24,19 @@ Apply the database schema to a running Postgres instance:
 psql "$DATABASE_URL" -f migrations/001_init.sql
 ```
 
+The billing tests exercise the idempotency guarantee (ADR-0001) against a
+real Postgres database — start one before running the suite:
+
+```bash
+docker run -d --name orbit-postgres-test \
+  -e POSTGRES_USER=orbit -e POSTGRES_PASSWORD=orbit -e POSTGRES_DB=orbit_test \
+  -p 5433:5432 postgres:17
+```
+
+By default tests connect to `postgresql://orbit:orbit@localhost:5433/orbit_test`;
+override with the `DATABASE_URL` environment variable to point elsewhere. Each
+test resets the schema, so no manual migration step is needed.
+
 Run the test suite:
 
 ```bash
