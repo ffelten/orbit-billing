@@ -43,6 +43,7 @@ ignore = [
 
 [tool.pytest.ini_options]
 addopts = ["-q"]
+asyncio_mode = "auto"
 
 [tool.ty.environment]
 python-version = "3.13"
