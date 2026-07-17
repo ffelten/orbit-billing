@@ -1,0 +1,21 @@
+Add subscription plan changes with proration to Orbit.
+
+First `git checkout main && git pull` — the webhook receiver was just merged.
+
+Read `CONTEXT.md` and `docs/adr/` — the decisions recorded there are binding on this work.
+
+## What to build
+
+1. **`src/orbit/models/subscription.py`** — the `Subscription` model: a customer on a plan, with a current period (start, end).
+
+2. **`src/orbit/billing/proration.py`** — upgrading or downgrading mid-period prorates the difference. Proration is computed on whole days remaining in the current period. All amounts are integer cents per ADR-0002 — no floats anywhere in the calculation, including intermediate values.
+
+3. **`src/orbit/api/routes.py`** — add `POST /subscriptions/{id}/plan` to change a subscription's plan, returning the prorated amount owed or credited.
+
+4. **Tests**: upgrade mid-period charges the prorated difference; downgrade credits it; a change on the last day of the period; a change on the first day; rounding behaviour is exact and total-preserving.
+
+## How to ship it
+
+Work on a feature branch off main. Commit with a clear message. Push the branch and open a pull request with `gh pr create` — write a real PR body describing what changed and why.
+
+Do not push to main.

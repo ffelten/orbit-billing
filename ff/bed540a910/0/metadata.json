@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_id": "ffbed540a910",
+  "session_id": "ad2e4473-c377-4fce-a44d-a700f64bc5a4",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-17T13:07:18.595108Z",
+  "branch": "add-plan-change-proration",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/models/subscription.py",
+    "src/orbit/billing/proration.py",
+    "src/orbit/billing/subscriptions.py",
+    "src/orbit/api/routes.py",
+    "tests/models/test_subscription.py",
+    "tests/billing/test_proration.py",
+    "tests/billing/test_subscriptions.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "16571d112c57",
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 70456,
+    "cache_read_tokens": 1623307,
+    "output_tokens": 23884,
+    "api_call_count": 22
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-17T13:07:18.580678Z",
+    "agent_lines": 490,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 490,
+    "total_lines_changed": 491,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 84,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84
+      }
+    }
+  ]
+}

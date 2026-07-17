@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "ffbed540a910",
+  "strategy": "manual-commit",
+  "branch": "add-plan-change-proration",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/proration.py",
+    "src/orbit/billing/subscriptions.py",
+    "src/orbit/models/subscription.py",
+    "tests/billing/test_proration.py",
+    "tests/billing/test_subscriptions.py",
+    "tests/models/test_subscription.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ff/bed540a910/0/metadata.json",
+      "transcript": "/ff/bed540a910/0/full.jsonl",
+      "compact_transcript": "/ff/bed540a910/0/transcript.jsonl",
+      "content_hash": "/ff/bed540a910/0/content_hash.txt",
+      "prompt": "/ff/bed540a910/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 70456,
+    "cache_read_tokens": 1623307,
+    "output_tokens": 23884,
+    "api_call_count": 22
+  }
+}
