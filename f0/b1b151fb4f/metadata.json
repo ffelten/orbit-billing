@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "f0b1b151fb4f",
+  "strategy": "manual-commit",
+  "branch": "notify/email-transport",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/notify/__init__.py",
+    "src/orbit/notify/email.py",
+    "src/orbit/notify/templates.py",
+    "tests/notify/__init__.py",
+    "tests/notify/test_email.py",
+    "tests/notify/test_templates.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f0/b1b151fb4f/0/metadata.json",
+      "transcript": "/f0/b1b151fb4f/0/full.jsonl",
+      "compact_transcript": "/f0/b1b151fb4f/0/transcript.jsonl",
+      "content_hash": "/f0/b1b151fb4f/0/content_hash.txt",
+      "prompt": "/f0/b1b151fb4f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 68,
+    "cache_creation_tokens": 59160,
+    "cache_read_tokens": 2317516,
+    "output_tokens": 13230,
+    "api_call_count": 34
+  }
+}

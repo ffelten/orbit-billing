@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_id": "f0b1b151fb4f",
+  "session_id": "b0aeab72-8290-4a8f-9bd0-dc7e56703028",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-17T13:12:21.487145Z",
+  "branch": "notify/email-transport",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/notify/__init__.py",
+    "tests/notify/__init__.py",
+    "src/orbit/notify/email.py",
+    "src/orbit/notify/templates.py",
+    "tests/notify/test_email.py",
+    "tests/notify/test_templates.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "f1bf1d56ee18",
+  "token_usage": {
+    "input_tokens": 68,
+    "cache_creation_tokens": 59160,
+    "cache_read_tokens": 2317516,
+    "output_tokens": 13230,
+    "api_call_count": 34
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-17T13:12:21.473204Z",
+    "agent_lines": 172,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 172,
+    "total_lines_changed": 172,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 84,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84
+      }
+    }
+  ]
+}

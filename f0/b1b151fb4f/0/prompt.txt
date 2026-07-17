@@ -1,0 +1,21 @@
+Add the email notification layer to Orbit.
+
+First `git checkout main && git pull` — plan changes with proration were just merged.
+
+Read `CONTEXT.md` and `docs/adr/` — the decisions recorded there are binding on this work.
+
+## What to build
+
+1. **`src/orbit/notify/email.py`** — a small send interface: an `EmailSender` protocol with a `send(to, subject, body)` method, an SMTP-backed implementation, and a `FakeSender` that records sent messages for tests.
+
+2. **`src/orbit/notify/templates.py`** — one template to start: `payment_failed(customer, charge)`, returning subject + body. Plain text is fine.
+
+3. Wire nothing to charges yet. This is the transport layer only.
+
+4. **Tests**: the fake sender records what was sent; the template renders the customer name and the amount as a formatted currency string from integer cents.
+
+## How to ship it
+
+Work on a feature branch off main. Commit with a clear message. Push the branch and open a pull request with `gh pr create` — write a real PR body describing what changed and why.
+
+Do not push to main.
