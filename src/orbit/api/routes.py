@@ -13,7 +13,8 @@ from orbit.billing.subscriptions import (
     SubscriptionNotFoundError,
     change_subscription_plan,
 )
-from orbit.billing.webhooks import InvalidWebhookSignatureError, receive_webhook
+from orbit.billing.webhooks import InvalidWebhookSignatureError
+from orbit.billing.worker import RetriesExhaustedError, process_webhook_with_retry
 from orbit.db import get_connection
 
 router = APIRouter()
@@ -39,11 +40,13 @@ async def receive_provider_webhook(
     payload = await request.body()
 
     try:
-        await receive_webhook(conn, payload=payload, signature=signature, secret=secret)
+        await process_webhook_with_retry(conn, payload=payload, signature=signature, secret=secret)
     except InvalidWebhookSignatureError as exc:
         raise HTTPException(status_code=400, detail="invalid signature") from exc
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail="malformed webhook payload") from exc
+    except RetriesExhaustedError as exc:
+        raise HTTPException(status_code=502, detail="webhook processing failed") from exc
 
     return {"received": True}
 
