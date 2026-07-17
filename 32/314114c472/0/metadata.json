@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_id": "32314114c472",
+  "session_id": "6108142a-fb25-42a1-a2f1-101754da1077",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-17T13:39:20.638492Z",
+  "branch": "retry/webhook-backoff",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/billing/worker.py",
+    "src/orbit/api/routes.py",
+    "tests/billing/test_worker.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "8692bd5e2cd0",
+  "token_usage": {
+    "input_tokens": 76,
+    "cache_creation_tokens": 73680,
+    "cache_read_tokens": 3106319,
+    "output_tokens": 26314,
+    "api_call_count": 38
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-17T13:39:20.621353Z",
+    "agent_lines": 303,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 303,
+    "total_lines_changed": 305,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 84,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84
+      }
+    }
+  ]
+}

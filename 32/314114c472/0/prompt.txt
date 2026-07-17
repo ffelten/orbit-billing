@@ -1,0 +1,7 @@
+Implement issue #5 — retry with exponential backoff in the webhook worker, capped at 5 attempts. Make the backoff jittered so a provider outage doesn't produce a thundering herd on recovery. Log each attempt.
+
+Add tests for the retry path.
+
+Work on a feature branch off main (`git checkout main && git pull` first). Commit, push, and open a pull request with `gh pr create`. Put "Closes #5" in the PR body.
+
+Do not push to main.

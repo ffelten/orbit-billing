@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "32314114c472",
+  "strategy": "manual-commit",
+  "branch": "retry/webhook-backoff",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/worker.py",
+    "tests/billing/test_worker.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/32/314114c472/0/metadata.json",
+      "transcript": "/32/314114c472/0/full.jsonl",
+      "compact_transcript": "/32/314114c472/0/transcript.jsonl",
+      "content_hash": "/32/314114c472/0/content_hash.txt",
+      "prompt": "/32/314114c472/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 76,
+    "cache_creation_tokens": 73680,
+    "cache_read_tokens": 3106319,
+    "output_tokens": 26314,
+    "api_call_count": 38
+  }
+}
