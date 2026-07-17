@@ -1,0 +1,23 @@
+Add the payment provider webhook receiver for Orbit.
+
+First `git checkout main && git pull` — the charge state machine and idempotency module were just merged and you build on them.
+
+Read `CONTEXT.md` and `docs/adr/` — the decisions recorded there are binding on this work.
+
+## What to build
+
+1. **`src/orbit/billing/webhooks.py`** — receive events from the payment provider. Verify the HMAC signature against a shared secret and reject anything that fails. Per ADR-0004, this path validates and enqueues; it must not call the provider.
+
+2. Handle the `charge.succeeded` and `charge.failed` event types, moving the charge through the existing state machine.
+
+3. Use the existing idempotency module so a redelivered event is a no-op rather than a second charge.
+
+4. **`src/orbit/api/routes.py`** — a `POST /webhooks/provider` endpoint wired to the receiver. Return 2xx fast.
+
+5. **Tests**: a bad signature is rejected; a redelivered event is a no-op; each event type moves the charge to the right state.
+
+## How to ship it
+
+Work on a feature branch off main. Commit with a clear message. Push the branch and open a pull request with `gh pr create` — write a real PR body describing what changed and why.
+
+Do not push to main.

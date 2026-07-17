@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "9e3c6d3de387",
+  "strategy": "manual-commit",
+  "branch": "add-payment-webhook-receiver",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/api/__init__.py",
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/webhooks.py",
+    "src/orbit/db.py",
+    "tests/billing/test_webhooks.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/9e/3c6d3de387/0/metadata.json",
+      "transcript": "/9e/3c6d3de387/0/full.jsonl",
+      "compact_transcript": "/9e/3c6d3de387/0/transcript.jsonl",
+      "content_hash": "/9e/3c6d3de387/0/content_hash.txt",
+      "prompt": "/9e/3c6d3de387/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 82,
+    "cache_creation_tokens": 71537,
+    "cache_read_tokens": 3178882,
+    "output_tokens": 27304,
+    "api_call_count": 41
+  }
+}
