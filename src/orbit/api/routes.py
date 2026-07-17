@@ -1,21 +1,25 @@
 """HTTP routes. Per ADR-0004, handlers validate and enqueue only."""
 
+import logging
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ValidationError
 
+from orbit.billing import dead_letter, metrics
 from orbit.billing.subscriptions import (
     PlanNotFoundError,
     SubscriptionNotFoundError,
     change_subscription_plan,
 )
-from orbit.billing.webhooks import InvalidWebhookSignatureError
+from orbit.billing.webhooks import InvalidWebhookSignatureError, extract_webhook_ids
 from orbit.billing.worker import RetriesExhaustedError, process_webhook_with_retry
 from orbit.db import get_connection
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -30,7 +34,10 @@ async def receive_provider_webhook(
     """Accept a payment-provider webhook delivery.
 
     Verifies the signature, then validates and enqueues per ADR-0004 — this
-    handler makes no outbound calls to the payment provider.
+    handler makes no outbound calls to the payment provider. This is the
+    receipt stage of the webhook pipeline; see `process_webhook_with_retry`
+    for retry/backoff and `orbit.billing.webhooks.receive_webhook` for
+    validation and settlement.
     """
     signature = request.headers.get(_SIGNATURE_HEADER)
     if signature is None:
@@ -38,17 +45,71 @@ async def receive_provider_webhook(
 
     secret = os.environ["PROVIDER_WEBHOOK_SECRET"]
     payload = await request.body()
+    ids = extract_webhook_ids(payload)
+    logger.info("webhook %s (delivery %s): received", ids.event_id, ids.delivery_id)
 
     try:
         await process_webhook_with_retry(conn, payload=payload, signature=signature, secret=secret)
     except InvalidWebhookSignatureError as exc:
+        logger.warning("webhook %s (delivery %s): invalid signature", ids.event_id, ids.delivery_id)
         raise HTTPException(status_code=400, detail="invalid signature") from exc
     except ValidationError as exc:
+        logger.warning("webhook %s (delivery %s): malformed payload", ids.event_id, ids.delivery_id)
         raise HTTPException(status_code=400, detail="malformed webhook payload") from exc
     except RetriesExhaustedError as exc:
         raise HTTPException(status_code=502, detail="webhook processing failed") from exc
 
     return {"received": True}
+
+
+class DeadLetterEntry(BaseModel):
+    id: int
+    provider_event_id: str
+    delivery_id: str
+    payload: dict[str, object]
+    error_message: str
+    attempts: int
+    failed_at: datetime
+
+
+@router.get("/webhooks/dead-letter")
+async def list_webhook_dead_letters(
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> list[DeadLetterEntry]:
+    """List webhook deliveries that exhausted all retry attempts, most recent first.
+
+    Lets support see what got dropped without digging through logs.
+    """
+    entries = await dead_letter.list_dead_letters(conn)
+    return [
+        DeadLetterEntry(
+            id=entry.id,
+            provider_event_id=entry.provider_event_id,
+            delivery_id=entry.delivery_id,
+            payload=entry.payload,
+            error_message=entry.error_message,
+            attempts=entry.attempts,
+            failed_at=entry.failed_at,
+        )
+        for entry in entries
+    ]
+
+
+class ChargeOutcomeCounts(BaseModel):
+    day: date
+    succeeded: int
+    failed: int
+
+
+@router.get("/metrics/charges")
+async def get_charge_metrics(
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> list[ChargeOutcomeCounts]:
+    """Charge outcome counts by day (succeeded vs failed), most recent day first."""
+    daily_counts = await metrics.list_charge_outcomes_by_day(conn)
+    return [
+        ChargeOutcomeCounts(day=d.day, succeeded=d.succeeded, failed=d.failed) for d in daily_counts
+    ]
 
 
 class ChangePlanRequest(BaseModel):

@@ -5,9 +5,16 @@ from datetime import UTC, datetime, timedelta
 
 import asyncpg
 import pytest
+from pydantic import ValidationError
 
 from orbit.billing.charges import ChargeStatus, IllegalChargeTransitionError
-from orbit.billing.webhooks import InvalidWebhookSignatureError, receive_webhook, verify_signature
+from orbit.billing.webhooks import (
+    InvalidWebhookSignatureError,
+    WebhookEvent,
+    extract_webhook_ids,
+    receive_webhook,
+    verify_signature,
+)
 
 SECRET = "whsec_test_secret"  # noqa: S105 -- test fixture, not a real credential
 PERIOD_START = datetime(2026, 1, 1, tzinfo=UTC)
@@ -38,10 +45,13 @@ async def _seed_subscription(conn: asyncpg.Connection) -> int:
     )
 
 
-def _event_payload(event_id: str, event_type: str, subscription_id: int) -> bytes:
+def _event_payload(
+    event_id: str, event_type: str, subscription_id: int, delivery_id: str = "dlv_1"
+) -> bytes:
     return json.dumps(
         {
             "id": event_id,
+            "delivery_id": delivery_id,
             "type": event_type,
             "data": {
                 "subscription_id": subscription_id,
@@ -73,9 +83,7 @@ async def test_bad_signature_is_rejected(db_conn: asyncpg.Connection) -> None:
     payload = _event_payload("evt_1", "charge.succeeded", subscription_id)
 
     with pytest.raises(InvalidWebhookSignatureError):
-        await receive_webhook(
-            db_conn, payload=payload, signature="forged-signature", secret=SECRET
-        )
+        await receive_webhook(db_conn, payload=payload, signature="forged-signature", secret=SECRET)
 
     charge_count = await db_conn.fetchval("SELECT count(*) FROM charges")
     assert charge_count == 0
@@ -158,3 +166,65 @@ async def test_unknown_event_type_is_ignored(db_conn: asyncpg.Connection) -> Non
     assert result is None
     charge_count = await db_conn.fetchval("SELECT count(*) FROM charges")
     assert charge_count == 0
+
+
+async def test_settling_a_charge_increments_the_daily_outcome_counter(
+    db_conn: asyncpg.Connection,
+) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    payload = _event_payload("evt_1", "charge.succeeded", subscription_id)
+
+    await receive_webhook(db_conn, payload=payload, signature=_sign(payload), secret=SECRET)
+
+    count = await db_conn.fetchval(
+        "SELECT count FROM charge_outcome_counts WHERE day = current_date AND status = 'succeeded'"
+    )
+    assert count == 1
+
+
+async def test_redelivery_does_not_double_count_the_outcome(db_conn: asyncpg.Connection) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    payload = _event_payload("evt_1", "charge.succeeded", subscription_id)
+    signature = _sign(payload)
+
+    await receive_webhook(db_conn, payload=payload, signature=signature, secret=SECRET)
+    await receive_webhook(db_conn, payload=payload, signature=signature, secret=SECRET)
+
+    count = await db_conn.fetchval(
+        "SELECT count FROM charge_outcome_counts WHERE day = current_date AND status = 'succeeded'"
+    )
+    assert count == 1
+
+
+def test_webhook_event_requires_delivery_id() -> None:
+    payload = json.dumps(
+        {
+            "id": "evt_1",
+            "type": "charge.succeeded",
+            "data": {
+                "subscription_id": 1,
+                "amount_cents": 1999,
+                "period_start": PERIOD_START.isoformat(),
+                "period_end": PERIOD_END.isoformat(),
+            },
+        }
+    ).encode()
+
+    with pytest.raises(ValidationError):
+        WebhookEvent.model_validate_json(payload)
+
+
+def test_extract_webhook_ids_reads_id_and_delivery_id() -> None:
+    payload = _event_payload("evt_1", "charge.succeeded", 1, delivery_id="dlv_42")
+
+    ids = extract_webhook_ids(payload)
+
+    assert ids.event_id == "evt_1"
+    assert ids.delivery_id == "dlv_42"
+
+
+def test_extract_webhook_ids_falls_back_to_unknown_on_malformed_payload() -> None:
+    ids = extract_webhook_ids(b"not json")
+
+    assert ids.event_id == "unknown"
+    assert ids.delivery_id == "unknown"

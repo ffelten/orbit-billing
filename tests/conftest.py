@@ -6,7 +6,8 @@ import asyncpg
 import pytest
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://orbit:orbit@localhost:5433/orbit_test")
-MIGRATIONS_SQL = (pathlib.Path(__file__).parent.parent / "migrations" / "001_init.sql").read_text()
+_MIGRATIONS_DIR = pathlib.Path(__file__).parent.parent / "migrations"
+MIGRATIONS_SQL = "\n".join(path.read_text() for path in sorted(_MIGRATIONS_DIR.glob("*.sql")))
 
 
 @pytest.fixture

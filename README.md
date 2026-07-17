@@ -18,10 +18,10 @@ Install dependencies:
 uv sync
 ```
 
-Apply the database schema to a running Postgres instance:
+Apply the database schema to a running Postgres instance, in order:
 
 ```bash
-psql "$DATABASE_URL" -f migrations/001_init.sql
+for f in migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done
 ```
 
 The billing tests exercise the idempotency guarantee (ADR-0001) against a
