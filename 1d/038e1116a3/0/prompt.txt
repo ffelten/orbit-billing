@@ -1,0 +1,19 @@
+Implement the charge state machine and idempotency for Orbit.
+
+Read `CONTEXT.md` and `docs/adr/` first — the decisions recorded there are binding on this work.
+
+## What to build
+
+1. **`src/orbit/billing/charges.py`** — the `Charge` model and its state machine: `pending` → `succeeded` | `failed`. A charge belongs to a subscription and covers one period. Include the transition function and reject illegal transitions.
+
+2. **`src/orbit/billing/idempotency.py`** — implement ADR-0001. The idempotency key is derived from the payment provider's event ID. Recording a processed event is what makes a redelivery a no-op: a replayed event returns the original charge rather than creating a second one.
+
+3. Wire it to the `processed_events` table (unique on the provider event id) so the guarantee is enforced by the database and not only in application code — this is what ADR-0001's consequences section calls for.
+
+4. **Tests** that actually exercise the guarantee: a replayed event returns the same charge and does not create a second one; an illegal state transition raises.
+
+## How to ship it
+
+Work on a feature branch. Commit with a clear message. Push the branch and open a pull request with `gh pr create` — write a real PR body describing what changed and why.
+
+Do not push to main.
