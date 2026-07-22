@@ -1,0 +1,9 @@
+Implement an admin endpoint to replay a stuck charge for the Orbit billing service (issue #13).
+
+Sometimes the worker crashes mid-flight and a charge is left stuck in `pending`,
+never settling. Support needs a way to manually re-run it.
+
+Add `POST /admin/charges/{charge_id}/replay` that re-attempts settling the charge
+and returns its resulting state. Add tests.
+
+When it's working and the tests pass, commit your changes.
