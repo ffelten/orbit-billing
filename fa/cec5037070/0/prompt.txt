@@ -1,0 +1,10 @@
+Implement a customer billing summary endpoint for the Orbit billing service (issue #8).
+
+Add `GET /customers/{customer_id}/billing-summary` that returns, as JSON:
+- the customer's active subscription (plan name, amount, interval),
+- their most recent charges (the last 10, newest first),
+- the total amount charged to the customer to date.
+
+Return 404 if the customer doesn't exist. Add tests for the endpoint.
+
+When it's working and the tests pass, commit your changes.

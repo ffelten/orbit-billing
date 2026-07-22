@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.8.42",
+  "checkpoint_id": "facec5037070",
+  "strategy": "manual-commit",
+  "branch": "customer-billing-summary",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/summary.py",
+    "tests/billing/test_summary.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/fa/cec5037070/0/metadata.json",
+      "transcript": "/fa/cec5037070/0/full.jsonl",
+      "compact_transcript": "/fa/cec5037070/0/transcript.jsonl",
+      "content_hash": "/fa/cec5037070/0/content_hash.txt",
+      "prompt": "/fa/cec5037070/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 60,
+    "cache_creation_tokens": 86249,
+    "cache_read_tokens": 2049165,
+    "output_tokens": 16465,
+    "api_call_count": 30
+  }
+}
