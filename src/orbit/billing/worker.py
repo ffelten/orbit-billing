@@ -8,15 +8,15 @@ connection timeouts) — not a payment provider integration.
 """
 
 import asyncio
-import json
 import logging
 import random
 from collections.abc import Awaitable, Callable
 
 import asyncpg
 
+from orbit.billing import dead_letter
 from orbit.billing.charges import Charge
-from orbit.billing.webhooks import receive_webhook
+from orbit.billing.webhooks import extract_webhook_ids, receive_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +45,6 @@ def _backoff_seconds(attempt: int, rng: random.Random) -> float:
     return rng.uniform(0, ceiling)
 
 
-def _event_id(payload: bytes) -> str:
-    try:
-        return str(json.loads(payload).get("id", "unknown"))
-    except (json.JSONDecodeError, AttributeError):
-        return "unknown"
-
-
 async def process_webhook_with_retry(  # noqa: PLR0913 -- mirrors receive_webhook's params,
     # plus sleep/rng hooks that let tests replace real waiting/randomness
     conn: asyncpg.Connection,
@@ -67,11 +60,11 @@ async def process_webhook_with_retry(  # noqa: PLR0913 -- mirrors receive_webhoo
     Retries at most MAX_ATTEMPTS times with jittered exponential backoff.
     Signature and validation errors are not retried since they are permanent
     and would fail identically on every attempt. Raises `RetriesExhaustedError`
-    if every attempt fails, surfacing the event as failed for manual
-    investigation.
+    if every attempt fails, after recording the delivery in the dead-letter
+    table (`orbit.billing.dead_letter`) for support to triage.
     """
     rng = rng if rng is not None else random.Random()  # noqa: S311 -- jitter timing, not crypto
-    event_id = _event_id(payload)
+    ids = extract_webhook_ids(payload)
     last_error: Exception | None = None
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -82,15 +75,42 @@ async def process_webhook_with_retry(  # noqa: PLR0913 -- mirrors receive_webhoo
         except _RETRYABLE_ERRORS as exc:
             last_error = exc
             logger.warning(
-                "webhook %s: attempt %d/%d failed: %s", event_id, attempt, MAX_ATTEMPTS, exc
+                "webhook %s (delivery %s): attempt %d/%d failed: %s",
+                ids.event_id,
+                ids.delivery_id,
+                attempt,
+                MAX_ATTEMPTS,
+                exc,
             )
             if attempt < MAX_ATTEMPTS:
                 await sleep(_backoff_seconds(attempt, rng))
             continue
         else:
-            logger.info("webhook %s: attempt %d/%d succeeded", event_id, attempt, MAX_ATTEMPTS)
+            logger.info(
+                "webhook %s (delivery %s): attempt %d/%d succeeded",
+                ids.event_id,
+                ids.delivery_id,
+                attempt,
+                MAX_ATTEMPTS,
+            )
             return charge
 
-    logger.error("webhook %s: giving up after %d attempts", event_id, MAX_ATTEMPTS)
-    msg = f"webhook {event_id} still failing after {MAX_ATTEMPTS} attempts"
+    logger.error(
+        "webhook %s (delivery %s): giving up after %d attempts",
+        ids.event_id,
+        ids.delivery_id,
+        MAX_ATTEMPTS,
+    )
+    await dead_letter.record_dead_letter(
+        conn,
+        provider_event_id=ids.event_id,
+        delivery_id=ids.delivery_id,
+        payload=payload,
+        error_message=str(last_error),
+        attempts=MAX_ATTEMPTS,
+    )
+    msg = (
+        f"webhook {ids.event_id} (delivery {ids.delivery_id}) "
+        f"still failing after {MAX_ATTEMPTS} attempts"
+    )
     raise RetriesExhaustedError(msg) from last_error
