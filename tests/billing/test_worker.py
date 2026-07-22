@@ -46,10 +46,13 @@ async def _seed_subscription(conn: asyncpg.Connection) -> int:
     )
 
 
-def _event_payload(event_id: str, event_type: str, subscription_id: int) -> bytes:
+def _event_payload(
+    event_id: str, event_type: str, subscription_id: int, delivery_id: str = "dlv_1"
+) -> bytes:
     return json.dumps(
         {
             "id": event_id,
+            "delivery_id": delivery_id,
             "type": event_type,
             "data": {
                 "subscription_id": subscription_id,
@@ -123,8 +126,9 @@ async def test_retries_transient_failure_then_succeeds(db_conn: asyncpg.Connecti
     assert charge is not None
     assert charge.status == ChargeStatus.SUCCEEDED
     # 2 failing attempts each consume 1 execute() before their transaction rolls back;
-    # the successful attempt consumes 2 (create charge, then transition it).
-    assert flaky.calls == 4
+    # the successful attempt consumes 3 (create charge, transition it, record the
+    # outcome counter).
+    assert flaky.calls == 5
     assert len(clock.slept) == 2
 
 
@@ -143,8 +147,16 @@ async def test_gives_up_after_max_attempts(db_conn: asyncpg.Connection) -> None:
             flaky, payload=payload, signature=_sign(payload), secret=SECRET, sleep=clock.sleep
         )
 
-    assert flaky.calls == MAX_ATTEMPTS
+    # MAX_ATTEMPTS failing execute() calls, plus one more that succeeds:
+    # the dead-letter row recording the exhausted delivery.
+    assert flaky.calls == MAX_ATTEMPTS + 1
     assert len(clock.slept) == MAX_ATTEMPTS - 1
+
+    dead_letters = await db_conn.fetch("SELECT * FROM webhook_dead_letters")
+    assert len(dead_letters) == 1
+    assert dead_letters[0]["provider_event_id"] == "evt_1"
+    assert dead_letters[0]["delivery_id"] == "dlv_1"
+    assert dead_letters[0]["attempts"] == MAX_ATTEMPTS
 
 
 async def test_permanent_error_is_not_retried(db_conn: asyncpg.Connection) -> None:
