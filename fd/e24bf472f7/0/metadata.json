@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.8.42",
+  "checkpoint_id": "fde24bf472f7",
+  "session_id": "79877b20-bf42-439e-8907-0c40c8e72147",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-22T08:01:34.184361Z",
+  "branch": "partial-refunds",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/billing/charges.py",
+    "src/orbit/billing/proration.py",
+    "migrations/002_refunds.sql",
+    "tests/conftest.py",
+    "src/orbit/billing/refunds.py",
+    "src/orbit/api/routes.py",
+    "tests/billing/test_proration.py",
+    "tests/billing/test_charges.py",
+    "tests/billing/test_refunds.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "ac274a22747d",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 76,
+    "cache_creation_tokens": 86204,
+    "cache_read_tokens": 3348354,
+    "output_tokens": 38393,
+    "api_call_count": 38
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-22T08:01:34.164655Z",
+    "agent_lines": 609,
+    "agent_removed": 5,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 609,
+    "total_lines_changed": 614,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 84,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84
+      }
+    }
+  ]
+}

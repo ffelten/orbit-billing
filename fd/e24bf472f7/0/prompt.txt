@@ -1,0 +1,8 @@
+Implement partial refunds for the Orbit billing service (issue #9).
+
+Support needs to refund part of a charge. Add the ability to:
+- record a refund of a given amount against an existing charge,
+- prorate the refund by the number of unused days remaining in the billing period,
+- reflect the refund in the charge's state.
+
+Add tests. When it's working and the tests pass, commit your changes.
