@@ -13,6 +13,7 @@ from orbit.billing.subscriptions import (
     SubscriptionNotFoundError,
     change_subscription_plan,
 )
+from orbit.billing.summary import CustomerNotFoundError, get_billing_summary
 from orbit.billing.webhooks import InvalidWebhookSignatureError
 from orbit.billing.worker import RetriesExhaustedError, process_webhook_with_retry
 from orbit.db import get_connection
@@ -91,4 +92,61 @@ async def change_subscription_plan_route(
         previous_plan_id=result.previous_plan_id,
         new_plan_id=result.new_plan_id,
         prorated_amount_cents=result.prorated_amount_cents,
+    )
+
+
+class ActiveSubscriptionResponse(BaseModel):
+    plan_name: str
+    amount_cents: int
+    interval: str
+
+
+class ChargeSummaryResponse(BaseModel):
+    id: int
+    amount_cents: int
+    status: str
+    created_at: datetime
+
+
+class BillingSummaryResponse(BaseModel):
+    customer_id: int
+    active_subscription: ActiveSubscriptionResponse | None
+    recent_charges: list[ChargeSummaryResponse]
+    total_charged_cents: int
+
+
+@router.get("/customers/{customer_id}/billing-summary")
+async def get_customer_billing_summary_route(
+    customer_id: int,
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> BillingSummaryResponse:
+    """Return a customer's active subscription, most recent charges, and total amount charged."""
+    try:
+        summary = await get_billing_summary(conn, customer_id=customer_id)
+    except CustomerNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="customer not found") from exc
+
+    active_subscription = (
+        ActiveSubscriptionResponse(
+            plan_name=summary.active_subscription.plan_name,
+            amount_cents=summary.active_subscription.amount_cents,
+            interval=summary.active_subscription.interval,
+        )
+        if summary.active_subscription is not None
+        else None
+    )
+
+    return BillingSummaryResponse(
+        customer_id=summary.customer_id,
+        active_subscription=active_subscription,
+        recent_charges=[
+            ChargeSummaryResponse(
+                id=charge.id,
+                amount_cents=charge.amount_cents,
+                status=charge.status,
+                created_at=charge.created_at,
+            )
+            for charge in summary.recent_charges
+        ],
+        total_charged_cents=summary.total_charged_cents,
     )
