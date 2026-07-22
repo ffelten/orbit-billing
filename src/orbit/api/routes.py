@@ -10,12 +10,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ValidationError
 
 from orbit.billing import dead_letter, metrics
+from orbit.billing.charges import ChargeStatus
 from orbit.billing.subscriptions import (
     PlanNotFoundError,
     SubscriptionNotFoundError,
     change_subscription_plan,
 )
-from orbit.billing.webhooks import InvalidWebhookSignatureError, extract_webhook_ids
+from orbit.billing.webhooks import (
+    ChargeNotFoundError,
+    InvalidWebhookSignatureError,
+    extract_webhook_ids,
+    replay_charge,
+)
 from orbit.billing.worker import RetriesExhaustedError, process_webhook_with_retry
 from orbit.db import get_connection
 
@@ -152,4 +158,36 @@ async def change_subscription_plan_route(
         previous_plan_id=result.previous_plan_id,
         new_plan_id=result.new_plan_id,
         prorated_amount_cents=result.prorated_amount_cents,
+    )
+
+
+class ReplayChargeResponse(BaseModel):
+    id: int
+    subscription_id: int
+    amount_cents: int
+    status: ChargeStatus
+
+
+@router.post("/admin/charges/{charge_id}/replay")
+async def replay_charge_route(
+    charge_id: int,
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> ReplayChargeResponse:
+    """Re-attempt settling a charge stuck in `pending`, e.g. after a worker crash mid-flight.
+
+    For support use: replays the webhook event that originally created the
+    charge through the same settlement path a live webhook delivery would
+    take. Safe to call on a charge that already settled — it is returned
+    unchanged.
+    """
+    try:
+        charge = await replay_charge(conn, charge_id)
+    except ChargeNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="charge not found") from exc
+
+    return ReplayChargeResponse(
+        id=charge.id,
+        subscription_id=charge.subscription_id,
+        amount_cents=charge.amount_cents,
+        status=charge.status,
     )

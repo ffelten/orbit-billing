@@ -8,11 +8,14 @@ import pytest
 from pydantic import ValidationError
 
 from orbit.billing.charges import ChargeStatus, IllegalChargeTransitionError
+from orbit.billing.idempotency import NewChargeRequest, get_or_create_charge_for_event
 from orbit.billing.webhooks import (
+    ChargeNotFoundError,
     InvalidWebhookSignatureError,
     WebhookEvent,
     extract_webhook_ids,
     receive_webhook,
+    replay_charge,
     verify_signature,
 )
 
@@ -228,3 +231,82 @@ def test_extract_webhook_ids_falls_back_to_unknown_on_malformed_payload() -> Non
 
     assert ids.event_id == "unknown"
     assert ids.delivery_id == "unknown"
+
+
+async def _seed_stuck_charge(
+    conn: asyncpg.Connection, event_id: str, event_type: str, subscription_id: int
+) -> int:
+    """Create a charge stuck in `pending`, mimicking a worker that crashed after
+    recording the event but before settling the charge it created.
+    """
+    payload = _event_payload(event_id, event_type, subscription_id)
+    request = NewChargeRequest(
+        subscription_id=subscription_id,
+        amount_cents=1999,
+        period_start=PERIOD_START,
+        period_end=PERIOD_END,
+    )
+    charge = await get_or_create_charge_for_event(
+        conn, event_id, json.loads(payload), request
+    )
+    return charge.id
+
+
+async def test_replay_settles_a_charge_stuck_pending_after_succeeded_event(
+    db_conn: asyncpg.Connection,
+) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    charge_id = await _seed_stuck_charge(db_conn, "evt_1", "charge.succeeded", subscription_id)
+
+    replayed = await replay_charge(db_conn, charge_id)
+
+    assert replayed.status == ChargeStatus.SUCCEEDED
+    stored_status = await db_conn.fetchval("SELECT status FROM charges WHERE id = $1", charge_id)
+    assert stored_status == "succeeded"
+
+
+async def test_replay_settles_a_charge_stuck_pending_after_failed_event(
+    db_conn: asyncpg.Connection,
+) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    charge_id = await _seed_stuck_charge(db_conn, "evt_1", "charge.failed", subscription_id)
+
+    replayed = await replay_charge(db_conn, charge_id)
+
+    assert replayed.status == ChargeStatus.FAILED
+    stored_status = await db_conn.fetchval("SELECT status FROM charges WHERE id = $1", charge_id)
+    assert stored_status == "failed"
+
+
+async def test_replay_increments_the_daily_outcome_counter(db_conn: asyncpg.Connection) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    charge_id = await _seed_stuck_charge(db_conn, "evt_1", "charge.succeeded", subscription_id)
+
+    await replay_charge(db_conn, charge_id)
+
+    count = await db_conn.fetchval(
+        "SELECT count FROM charge_outcome_counts WHERE day = current_date AND status = 'succeeded'"
+    )
+    assert count == 1
+
+
+async def test_replay_is_a_no_op_on_an_already_settled_charge(db_conn: asyncpg.Connection) -> None:
+    subscription_id = await _seed_subscription(db_conn)
+    payload = _event_payload("evt_1", "charge.succeeded", subscription_id)
+    settled = await receive_webhook(
+        db_conn, payload=payload, signature=_sign(payload), secret=SECRET
+    )
+    assert settled is not None
+
+    replayed = await replay_charge(db_conn, settled.id)
+
+    assert replayed.status == ChargeStatus.SUCCEEDED
+    count = await db_conn.fetchval(
+        "SELECT count FROM charge_outcome_counts WHERE day = current_date AND status = 'succeeded'"
+    )
+    assert count == 1
+
+
+async def test_replay_unknown_charge_raises(db_conn: asyncpg.Connection) -> None:
+    with pytest.raises(ChargeNotFoundError):
+        await replay_charge(db_conn, 404)

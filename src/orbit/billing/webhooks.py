@@ -33,6 +33,14 @@ class InvalidWebhookSignatureError(Exception):
     """Raised when a webhook's signature does not match the shared secret."""
 
 
+class ChargeNotFoundError(Exception):
+    """Raised when a charge_id does not correspond to any charge."""
+
+    def __init__(self, charge_id: int) -> None:
+        super().__init__(f"charge {charge_id} not found")
+        self.charge_id = charge_id
+
+
 class WebhookEventData(BaseModel):
     """The charge fields carried by a `charge.succeeded` / `charge.failed` event."""
 
@@ -132,6 +140,21 @@ async def receive_webhook(
     if charge.status is not ChargeStatus.PENDING:
         return charge
 
+    updated = await _settle_charge(conn, charge, new_status)
+    logger.info(
+        "webhook %s (delivery %s): charge %d settled as %s",
+        event.id,
+        event.delivery_id,
+        updated.id,
+        updated.status.value,
+    )
+    return updated
+
+
+async def _settle_charge(
+    conn: asyncpg.Connection, charge: Charge, new_status: ChargeStatus
+) -> Charge:
+    """Transition `charge` to `new_status` and record the outcome, in one transaction."""
     updated = transition_charge(charge, new_status)
     async with conn.transaction():
         await conn.execute(
@@ -140,12 +163,45 @@ async def receive_webhook(
             updated.id,
         )
         await record_charge_outcome(conn, updated.status)
+    return updated
 
-    logger.info(
-        "webhook %s (delivery %s): charge %d settled as %s",
-        event.id,
-        event.delivery_id,
-        updated.id,
-        updated.status.value,
+
+def _charge_from_row(row: asyncpg.Record) -> Charge:
+    return Charge(
+        id=row["id"],
+        subscription_id=row["subscription_id"],
+        amount_cents=row["amount_cents"],
+        status=ChargeStatus(row["status"]),
+        idempotency_key=row["idempotency_key"],
+        period_start=row["period_start"],
+        period_end=row["period_end"],
     )
+
+
+async def replay_charge(conn: asyncpg.Connection, charge_id: int) -> Charge:
+    """Re-attempt settling a charge stuck in `pending`, e.g. after a worker crash mid-flight.
+
+    Replays the webhook event that originally created the charge through the
+    same settlement path `receive_webhook` uses, without needing the payment
+    provider to redeliver anything — the event was already verified and its
+    payload persisted in `processed_events` when the charge was created.
+    Idempotent: a charge that has already settled (by this replay, or by a
+    webhook delivery that arrived in the meantime) is returned unchanged.
+    """
+    row = await conn.fetchrow("SELECT * FROM charges WHERE id = $1", charge_id)
+    if row is None:
+        raise ChargeNotFoundError(charge_id)
+
+    charge = _charge_from_row(row)
+    if charge.status is not ChargeStatus.PENDING:
+        return charge
+
+    event_payload = await conn.fetchval(
+        "SELECT payload FROM processed_events WHERE charge_id = $1", charge_id
+    )
+    event = WebhookEvent.model_validate_json(event_payload)
+    new_status = _EVENT_OUTCOMES[event.type]
+
+    updated = await _settle_charge(conn, charge, new_status)
+    logger.info("charge %d: replayed, settled as %s", updated.id, updated.status.value)
     return updated
