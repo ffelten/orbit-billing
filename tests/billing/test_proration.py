@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from orbit.billing.proration import prorated_amount_cents
+from orbit.billing.proration import prorated_amount_cents, prorated_refund_cents
 
 PERIOD_START = datetime(2026, 1, 1, tzinfo=UTC)
 PERIOD_END = PERIOD_START + timedelta(days=30)
@@ -133,4 +133,78 @@ def test_zero_length_period_raises() -> None:
             period_start=PERIOD_START,
             period_end=PERIOD_START + timedelta(hours=12),
             changed_at=PERIOD_START,
+        )
+
+
+def test_refund_mid_period_prorates_unused_days() -> None:
+    amount = prorated_refund_cents(
+        amount_cents=3000,
+        period_start=PERIOD_START,
+        period_end=PERIOD_END,
+        refunded_at=PERIOD_START + timedelta(days=20),
+    )
+
+    assert amount == 1000  # 10/30 days remaining
+
+
+def test_refund_on_first_day_refunds_full_amount() -> None:
+    amount = prorated_refund_cents(
+        amount_cents=3000,
+        period_start=PERIOD_START,
+        period_end=PERIOD_END,
+        refunded_at=PERIOD_START,
+    )
+
+    assert amount == 3000
+
+
+def test_refund_on_last_day_of_period_prorates_to_almost_nothing() -> None:
+    amount = prorated_refund_cents(
+        amount_cents=3000,
+        period_start=PERIOD_START,
+        period_end=PERIOD_END,
+        refunded_at=PERIOD_END - timedelta(days=1),
+    )
+
+    assert amount == 100  # round(3000 * 1 / 30)
+
+
+def test_refund_at_period_end_prorates_to_zero() -> None:
+    amount = prorated_refund_cents(
+        amount_cents=3000,
+        period_start=PERIOD_START,
+        period_end=PERIOD_END,
+        refunded_at=PERIOD_END,
+    )
+
+    assert amount == 0
+
+
+def test_refunded_at_before_period_start_raises() -> None:
+    with pytest.raises(ValueError, match="refunded_at"):
+        prorated_refund_cents(
+            amount_cents=3000,
+            period_start=PERIOD_START,
+            period_end=PERIOD_END,
+            refunded_at=PERIOD_START - timedelta(days=1),
+        )
+
+
+def test_refunded_at_after_period_end_raises() -> None:
+    with pytest.raises(ValueError, match="refunded_at"):
+        prorated_refund_cents(
+            amount_cents=3000,
+            period_start=PERIOD_START,
+            period_end=PERIOD_END,
+            refunded_at=PERIOD_END + timedelta(days=1),
+        )
+
+
+def test_refund_zero_length_period_raises() -> None:
+    with pytest.raises(ValueError, match="period_end"):
+        prorated_refund_cents(
+            amount_cents=3000,
+            period_start=PERIOD_START,
+            period_end=PERIOD_START + timedelta(hours=12),
+            refunded_at=PERIOD_START,
         )

@@ -8,11 +8,17 @@ class ChargeStatus(StrEnum):
     PENDING = "pending"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    PARTIALLY_REFUNDED = "partially_refunded"
+    REFUNDED = "refunded"
 
 
 _ALLOWED_TRANSITIONS: dict[ChargeStatus, frozenset[ChargeStatus]] = {
     ChargeStatus.PENDING: frozenset({ChargeStatus.SUCCEEDED, ChargeStatus.FAILED}),
-    ChargeStatus.SUCCEEDED: frozenset(),
+    ChargeStatus.SUCCEEDED: frozenset({ChargeStatus.PARTIALLY_REFUNDED, ChargeStatus.REFUNDED}),
+    ChargeStatus.PARTIALLY_REFUNDED: frozenset(
+        {ChargeStatus.PARTIALLY_REFUNDED, ChargeStatus.REFUNDED}
+    ),
+    ChargeStatus.REFUNDED: frozenset(),
     ChargeStatus.FAILED: frozenset(),
 }
 
@@ -40,11 +46,19 @@ class Charge(BaseModel):
     idempotency_key: str
     period_start: datetime
     period_end: datetime
+    refunded_amount_cents: int = Field(ge=0, default=0)
 
     @model_validator(mode="after")
     def _check_period(self) -> "Charge":
         if self.period_end <= self.period_start:
             msg = "period_end must be after period_start"
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _check_refunded_amount(self) -> "Charge":
+        if self.refunded_amount_cents > self.amount_cents:
+            msg = "refunded_amount_cents cannot exceed amount_cents"
             raise ValueError(msg)
         return self
 

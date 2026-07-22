@@ -56,6 +56,13 @@ def test_transition_returns_new_charge_without_mutating_original() -> None:
         (ChargeStatus.FAILED, ChargeStatus.SUCCEEDED),
         (ChargeStatus.FAILED, ChargeStatus.PENDING),
         (ChargeStatus.PENDING, ChargeStatus.PENDING),
+        (ChargeStatus.PENDING, ChargeStatus.PARTIALLY_REFUNDED),
+        (ChargeStatus.PENDING, ChargeStatus.REFUNDED),
+        (ChargeStatus.FAILED, ChargeStatus.PARTIALLY_REFUNDED),
+        (ChargeStatus.FAILED, ChargeStatus.REFUNDED),
+        (ChargeStatus.REFUNDED, ChargeStatus.SUCCEEDED),
+        (ChargeStatus.REFUNDED, ChargeStatus.PARTIALLY_REFUNDED),
+        (ChargeStatus.REFUNDED, ChargeStatus.REFUNDED),
     ],
 )
 def test_illegal_transition_raises(from_status: ChargeStatus, to_status: ChargeStatus) -> None:
@@ -63,6 +70,36 @@ def test_illegal_transition_raises(from_status: ChargeStatus, to_status: ChargeS
 
     with pytest.raises(IllegalChargeTransitionError):
         transition_charge(charge, to_status)
+
+
+@pytest.mark.parametrize(
+    ("from_status", "to_status"),
+    [
+        (ChargeStatus.SUCCEEDED, ChargeStatus.PARTIALLY_REFUNDED),
+        (ChargeStatus.SUCCEEDED, ChargeStatus.REFUNDED),
+        (ChargeStatus.PARTIALLY_REFUNDED, ChargeStatus.PARTIALLY_REFUNDED),
+        (ChargeStatus.PARTIALLY_REFUNDED, ChargeStatus.REFUNDED),
+    ],
+)
+def test_refund_transitions_are_allowed(from_status: ChargeStatus, to_status: ChargeStatus) -> None:
+    charge = _pending_charge().model_copy(update={"status": from_status})
+
+    charge = transition_charge(charge, to_status)
+
+    assert charge.status == to_status
+
+
+def test_refunded_amount_cannot_exceed_charge_amount() -> None:
+    with pytest.raises(ValueError, match="refunded_amount_cents"):
+        Charge(
+            id=1,
+            subscription_id=1,
+            amount_cents=1999,
+            idempotency_key="evt_1",
+            period_start=PERIOD_START,
+            period_end=PERIOD_END,
+            refunded_amount_cents=2000,
+        )
 
 
 def test_charge_rejects_period_end_before_start() -> None:

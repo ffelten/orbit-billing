@@ -8,6 +8,13 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ValidationError
 
+from orbit.billing.charges import ChargeStatus
+from orbit.billing.refunds import (
+    ChargeNotFoundError,
+    ChargeNotRefundableError,
+    RefundExceedsChargeError,
+    record_refund,
+)
 from orbit.billing.subscriptions import (
     PlanNotFoundError,
     SubscriptionNotFoundError,
@@ -91,4 +98,53 @@ async def change_subscription_plan_route(
         previous_plan_id=result.previous_plan_id,
         new_plan_id=result.new_plan_id,
         prorated_amount_cents=result.prorated_amount_cents,
+    )
+
+
+class RefundChargeRequest(BaseModel):
+    amount_cents: int
+
+
+class RefundChargeResponse(BaseModel):
+    charge_id: int
+    requested_amount_cents: int
+    refunded_amount_cents: int
+    total_refunded_cents: int
+    charge_status: ChargeStatus
+
+
+@router.post("/charges/{charge_id}/refunds")
+async def refund_charge_route(
+    charge_id: int,
+    body: RefundChargeRequest,
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> RefundChargeResponse:
+    """Refund part or all of a charge, prorated by unused days remaining.
+
+    `refunded_amount_cents` is what was actually credited, which may be
+    less than `requested_amount_cents` — refunds only cover the unused
+    portion of the charge's billing period.
+    """
+    try:
+        result = await record_refund(
+            conn,
+            charge_id=charge_id,
+            amount_cents=body.amount_cents,
+            refunded_at=datetime.now(UTC),
+        )
+    except ChargeNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="charge not found") from exc
+    except ChargeNotRefundableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except RefundExceedsChargeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return RefundChargeResponse(
+        charge_id=result.charge_id,
+        requested_amount_cents=result.requested_amount_cents,
+        refunded_amount_cents=result.refunded_amount_cents,
+        total_refunded_cents=result.total_refunded_cents,
+        charge_status=result.charge_status,
     )

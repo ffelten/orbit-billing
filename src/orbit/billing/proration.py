@@ -7,6 +7,15 @@ calculation, including intermediate values.
 from datetime import datetime
 
 
+def _round_half_up(numerator: int, denominator: int) -> int:
+    """Round the non-negative fraction numerator/denominator to the nearest integer.
+
+    Ties round away from zero. Callers apply sign separately, so both
+    arguments here are always non-negative.
+    """
+    return (numerator * 2 + denominator) // (2 * denominator)
+
+
 def prorated_amount_cents(
     *,
     old_amount_cents: int,
@@ -38,5 +47,31 @@ def prorated_amount_cents(
     days_remaining = (period_end - changed_at).days
     numerator = (new_amount_cents - old_amount_cents) * days_remaining
     sign = 1 if numerator >= 0 else -1
-    rounded = (abs(numerator) * 2 + total_days) // (2 * total_days)
-    return sign * rounded
+    return sign * _round_half_up(abs(numerator), total_days)
+
+
+def prorated_refund_cents(
+    *,
+    amount_cents: int,
+    period_start: datetime,
+    period_end: datetime,
+    refunded_at: datetime,
+) -> int:
+    """Refund owed for the unused portion of a charge's billing period.
+
+    Refunds only cover unused service: `amount_cents` is scaled by the
+    fraction of the period (in whole days) still unused as of
+    `refunded_at`, then rounded to the nearest cent. A refund requested on
+    the last day of the period prorates to zero.
+    """
+    total_days = (period_end - period_start).days
+    if total_days <= 0:
+        msg = "period_end must be at least one whole day after period_start"
+        raise ValueError(msg)
+    if refunded_at < period_start or refunded_at > period_end:
+        msg = "refunded_at must fall within the charge's period"
+        raise ValueError(msg)
+
+    days_remaining = (period_end - refunded_at).days
+    numerator = amount_cents * days_remaining
+    return _round_half_up(numerator, total_days)
