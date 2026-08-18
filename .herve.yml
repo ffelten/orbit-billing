@@ -1,24 +1,33 @@
+# Hervé tier rules for Orbit. Each path_rule has a single `pattern` (regex);
+# the first matching rule wins, so critical rules are listed first.
 path_rules:
-  # Money moves here
   - tier: critical
+    pattern: '(^|/)migrations?/'
+    reason: "Schema changes touch stored money"
+  - tier: critical
+    pattern: '\.sql$'
+    reason: "Raw SQL"
+  - tier: critical
+    pattern: '(^|/)billing/(charges|refunds|gift_cards)\.py$'
     reason: "Money moves here"
-    patterns: ['(^|/)migrations?/', '\.sql$', '(^|/)billing/(charges|refunds|gift_cards)\.py$']
-
-  # Public API surface
   - tier: high
+    pattern: '(^|/)api/'
     reason: "Public API surface"
-    patterns: ['(^|/)api/']
-
-  # Templates and tests
+  - tier: medium
+    pattern: '(^|/)models/'
+    reason: "Domain data models"
+  - tier: medium
+    pattern: '(^|/)billing/'
+    reason: "Billing logic"
   - tier: low
-    reason: "Templates and tests"
-    patterns: ['(^|/)notify/templates\.py$', '(^|/)tests/']
-
-  # Docs
+    pattern: '(^|/)notify/templates\.py$'
+    reason: "Notification templates"
+  - tier: low
+    pattern: '(^|/)tests/'
+    reason: "Tests"
   - tier: info
+    pattern: '\.md$'
     reason: "Docs"
-    patterns: ['\.md$']
-
 tier_overrides:
   - pattern: 'assets/**'
     tier: info
