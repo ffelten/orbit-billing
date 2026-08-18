@@ -1,0 +1,5 @@
+Now implement gift card purchase and redemption in src/orbit/billing/gift_cards.py. A customer buys a gift card for any amount and receives a code — generate a 12-character uppercase alphanumeric code. Redeem at checkout: partial redemption is allowed and the remainder stays on the card; wire redemption through the existing charges flow (src/orbit/billing/charges.py). Per the PRD the buyer receives the code by email after purchase — add that confirmation email in src/orbit/notify/templates.py and wire it into the purchase path. Add tests in tests/billing/test_gift_cards.py. Use /tdd. Do NOT commit yet — I want to review first.
+
+---
+
+Looks good — implement all of it with /tdd, including the purchase confirmation email wired into the purchase path. Run the tests and ruff. Stop before committing.

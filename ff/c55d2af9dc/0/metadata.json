@@ -1,0 +1,106 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "ffc55d2af9dc",
+  "session_id": "1fd96b76-7cbc-40f8-a60c-bc202a5ec978",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T13:52:23.563071Z",
+  "branch": "gift-cards",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "src/orbit/billing/gift_cards.py",
+    "src/orbit/notify/templates.py",
+    "tests/billing/test_gift_cards.py",
+    "tests/notify/test_templates.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "ecab5297e35b",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 144,
+    "cache_creation_tokens": 209692,
+    "cache_read_tokens": 6451252,
+    "output_tokens": 34556,
+    "api_call_count": 72
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01E9AyuABngFxyCtNnvTuL5X",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "tdd"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "ecab5297e35b",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 13,
+        "end": 14,
+        "entry_ids": [
+          "e30dca48-c37c-4f1e-bbf0-50f3595cb47f"
+        ],
+        "tool_use_id": "toolu_01E9AyuABngFxyCtNnvTuL5X"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01E9AyuABngFxyCtNnvTuL5X"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: tdd",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-18T13:52:23.53585Z",
+    "agent_lines": 443,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 4,
+    "human_removed": 38,
+    "total_committed": 447,
+    "total_lines_changed": 486,
+    "agent_percentage": 91.35802469135803,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 277,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84,
+        ".claude/skills/tdd/LICENSE": 21,
+        ".claude/skills/tdd/SKILL.md": 36,
+        ".claude/skills/tdd/mocking.md": 59,
+        ".claude/skills/tdd/tests.md": 77
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 277,
+      "user_lines_removed": 0,
+      "agent_lines_added": 485,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84,
+        ".claude/skills/tdd/LICENSE": 21,
+        ".claude/skills/tdd/SKILL.md": 36,
+        ".claude/skills/tdd/mocking.md": 59,
+        ".claude/skills/tdd/tests.md": 77
+      }
+    }
+  ]
+}
