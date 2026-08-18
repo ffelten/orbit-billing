@@ -1,0 +1,5 @@
+Implement gift cards per docs/prd/gift-cards.md (the PRD is also issue #16), respecting the ADRs in docs/adr. Start with the table and the model only — redemption comes in a later commit. Plan first.
+
+---
+
+/tdd Go with 2 — follow ADR-0005, finance's rule stands and I'll get the PRD fixed later. Build the table and the model test-first.
