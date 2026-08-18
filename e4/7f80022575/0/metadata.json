@@ -1,0 +1,88 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "e47f80022575",
+  "session_id": "ab5982dd-a2b6-45d7-94ab-49d1edb60509",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T13:40:51.473722Z",
+  "branch": "gift-cards",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "tests/models/test_gift_card.py",
+    "src/orbit/models/gift_card.py",
+    "migrations/004_gift_cards.sql",
+    "CONTEXT.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "e3649a26bc2b",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 64,
+    "cache_creation_tokens": 62078,
+    "cache_read_tokens": 2292206,
+    "output_tokens": 14437,
+    "api_call_count": 32
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01CaEPzfGaVMgbroHpX1Dq4M",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "tdd"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "e3649a26bc2b",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 120,
+        "end": 121,
+        "entry_ids": [
+          "7dfb35ef-0955-4059-8fa3-fb34b16985ed"
+        ],
+        "tool_use_id": "toolu_01CaEPzfGaVMgbroHpX1Dq4M"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01CaEPzfGaVMgbroHpX1Dq4M"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: tdd",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "initial_attribution": {
+    "calculated_at": "2026-08-18T13:40:51.4597Z",
+    "agent_lines": 115,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 115,
+    "total_lines_changed": 155,
+    "agent_percentage": 74.19354838709677,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 277,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84,
+        ".claude/skills/tdd/LICENSE": 21,
+        ".claude/skills/tdd/SKILL.md": 36,
+        ".claude/skills/tdd/mocking.md": 59,
+        ".claude/skills/tdd/tests.md": 77
+      }
+    }
+  ]
+}

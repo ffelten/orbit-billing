@@ -1,0 +1,5 @@
+Implement gift cards per docs/prd/gift-cards.md. Start with the table and the model. Plan first.
+
+---
+
+Go — implement the plan. Use /tdd for the model. When the tests pass and ruff is clean, commit with a concise message (subject like 'Add gift card table and model').
