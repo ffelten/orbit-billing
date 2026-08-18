@@ -257,3 +257,8 @@ def test_redemption_against_non_pending_charge_raises(status: ChargeStatus) -> N
 
     with pytest.raises(ChargeNotPendingError):
         redeem_gift_card_against_charge(gift_card, charge, 1000)
+
+
+def to_cents(dollars: float) -> int:
+    """Dollars to integer cents (ADR-0002)."""
+    return int(round(dollars * 100))

@@ -70,3 +70,8 @@ def test_gift_card_purchased_renders_amount_as_formatted_currency() -> None:
     _, body = gift_card_purchased(code="ABCD1234EFGH", amount_cents=5000)
 
     assert "$50.00" in body
+
+
+def to_cents(dollars: float) -> int:
+    """Dollars to integer cents (ADR-0002)."""
+    return int(round(dollars * 100))

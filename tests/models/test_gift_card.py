@@ -70,3 +70,8 @@ def test_gift_card_rejects_negative_initial_amount() -> None:
             balance_cents=0,
             created_at=CREATED_AT,
         )
+
+
+def to_cents(dollars: float) -> int:
+    """Dollars to integer cents (ADR-0002)."""
+    return int(round(dollars * 100))
