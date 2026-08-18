@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "d6c619d8c184",
+  "strategy": "manual-commit",
+  "branch": "demo-repo-prep",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".herve.yml",
+    "CONTEXT.md",
+    "README.md",
+    "docs/prd/gift-cards.md",
+    "src/orbit/billing/coupons.py",
+    "tests/billing/test_coupons.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d6/c619d8c184/0/metadata.json",
+      "transcript": "/d6/c619d8c184/0/full.jsonl",
+      "compact_transcript": "/d6/c619d8c184/0/transcript.jsonl",
+      "content_hash": "/d6/c619d8c184/0/content_hash.txt",
+      "prompt": "/d6/c619d8c184/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 50,
+    "cache_creation_tokens": 40197,
+    "cache_read_tokens": 1365079,
+    "output_tokens": 7216,
+    "api_call_count": 25
+  }
+}

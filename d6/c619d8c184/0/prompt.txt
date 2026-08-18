@@ -1,0 +1,47 @@
+Orbit is becoming the public demo repository for Hervé (https://app.herve.review), the PR review tool that reads the agent sessions behind a PR. Prepare the repo for that. Work on the current branch (`demo-repo-prep`), don't commit — I'll review and commit myself.
+
+1. Rewrite README.md so it presents Orbit as the Hervé demo repo. Keep the existing "Stack", "Running it" and lint sections at the bottom, but open with:
+   - Title "Orbit · the Hervé demo repository" and one paragraph: Orbit is a deliberately small subscription-billing service (plans, customers, subscriptions, charges, provider webhooks, refunds). It exists so you can see what Hervé does with a codebase where every line was written by an AI agent.
+   - A "Start here" list: the pull request "Add gift cards" (link placeholder `<HERO_PR_URL>` — I'll fill it), issue "Gift cards" (the PRD it was built from, placeholder `<PRD_ISSUE_URL>`), `docs/adr/` (four decisions the agents were told to respect), the `entire/checkpoints/v1` branch (where the agent sessions live; Hervé reads it, nothing is stored on Hervé's side).
+   - "How it was built": each PR is one or more Claude Code sessions captured by `rv` (Hervé's CLI, which sets up Entire); commit trailers `Entire-Checkpoint:` point at the session; CI runs tests and ruff on every PR. Add a CI badge line at the top for the workflow you create in step 3.
+   - "Domain in one paragraph": a customer subscribes to a plan; each period produces a charge; the payment provider confirms it through a webhook. Amounts are integer cents. Gift cards are prepaid balances redeemable at checkout.
+2. Add a short "Why this repo exists" header paragraph at the top of CONTEXT.md (2 sentences), keep the rest.
+3. Add `.github/workflows/ci.yml` with two jobs, `tests` and `lint`, on pull_request and push to main. `tests` needs a Postgres 17 service (user/password/db `orbit`/`orbit`/`orbit_test`, exposed on port 5433 so `DATABASE_URL` matches the default in the README) and runs `uv sync` then `uv run pytest -q`. `lint` runs `uv run ruff check` and `uv run ruff format --check`. Use astral-sh/setup-uv. Pin action versions to full commit SHAs with a version comment.
+4. Add `.herve.yml` (Hervé's tier config) with a comment above each rule explaining why:
+   ```yaml
+   path_rules:
+     - tier: critical
+       reason: "Money moves here"
+       patterns: ['(^|/)migrations?/', '\.sql$', '(^|/)billing/(charges|refunds|gift_cards)\.py$']
+     - tier: high
+       reason: "Public API surface"
+       patterns: ['(^|/)api/']
+     - tier: low
+       reason: "Templates and tests"
+       patterns: ['(^|/)notify/templates\.py$', '(^|/)tests/']
+     - tier: info
+       reason: "Docs"
+       patterns: ['\.md$']
+   tier_overrides:
+     - pattern: 'assets/**'
+       tier: info
+       label: Static
+   ```
+5. Add `docs/prd/gift-cards.md` — the PRD for the next feature. Exactly this content:
+   ```
+   # Gift cards
+
+   Customers can buy a gift card for any amount and give the code to someone else.
+
+   - Customers buy a gift card for any amount and receive a code.
+   - Gift cards never expire.
+   - The buyer receives the card code by email after purchase.
+   - Balances are integer cents (ADR-0002).
+   - Partial redemption is allowed; the remainder stays on the card.
+   - Remove the legacy coupon module.
+   - Out of scope: bulk issuance for corporate customers.
+   ```
+6. Add the "legacy coupon module" the PRD refers to: `src/orbit/billing/coupons.py` with a small `apply_coupon(amount_cents: int, code: str) -> int` that knows two hard-coded percent-off codes (`WELCOME10`, `ANNUAL20`) and raises `UnknownCoupon` otherwise, plus `tests/billing/test_coupons.py`. Keep it obviously legacy (a module docstring saying it predates plans and is slated for removal).
+7. Run `uv run pytest -q`, `uv run ruff check`, `uv run ruff format`. Everything must be green.
+
+For reference, the provider test key we use in staging is REDACTED — do NOT put it anywhere in the repo, the CI workflow must read `PROVIDER_TEST_KEY` from GitHub secrets if it ever needs one (it doesn't today, so don't add it).
