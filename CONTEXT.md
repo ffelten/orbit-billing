@@ -1,5 +1,8 @@
 # Orbit — Domain Language
 
+This repo is the [Hervé](https://app.herve.review) demo: every line was
+written by an AI agent, guided by this document and the ADRs it links to.
+
 Orbit is a subscription billing API. This document defines the vocabulary used
 throughout the code, docs, and commit messages. Use these terms precisely.
 

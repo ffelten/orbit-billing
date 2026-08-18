@@ -1,9 +1,34 @@
-# Orbit
+# Orbit · the Hervé demo repository
 
-Orbit is a subscription billing API: plans, customers, subscriptions, and the
-charges and payment-provider webhooks that keep them paid. See
-[`CONTEXT.md`](CONTEXT.md) for the domain vocabulary and
-[`docs/adr/`](docs/adr/) for the rules the system is built to.
+[![CI](https://github.com/ffelten/orbit-billing/actions/workflows/ci.yml/badge.svg)](https://github.com/ffelten/orbit-billing/actions/workflows/ci.yml)
+
+Orbit is a deliberately small subscription-billing service (plans,
+customers, subscriptions, charges, provider webhooks, refunds). It exists
+so you can see what [Hervé](https://app.herve.review) does with a codebase
+where every line was written by an AI agent.
+
+## Start here
+
+- The pull request [Add gift cards](<HERO_PR_URL>) — the feature this repo
+  was built to demo.
+- The issue [Gift cards](<PRD_ISSUE_URL>) — the PRD the PR was built from.
+- [`docs/adr/`](docs/adr/) — four decisions the agents were told to respect.
+- The [`entire/checkpoints/v1`](../../tree/entire/checkpoints/v1) branch —
+  where the agent sessions behind every PR live. Hervé reads it; nothing is
+  stored on Hervé's side.
+
+## How it was built
+
+Each PR is one or more Claude Code sessions, captured by `rv` (Hervé's CLI,
+which sets up Entire). Commit trailers (`Entire-Checkpoint:`) point at the
+session that produced each commit. CI runs the test suite and ruff on every
+PR.
+
+## Domain in one paragraph
+
+A customer subscribes to a plan; each period produces a charge; the payment
+provider confirms it through a webhook. Amounts are integer cents. Gift
+cards are prepaid balances redeemable at checkout.
 
 ## Stack
 
