@@ -28,6 +28,19 @@ def payment_failed(customer: Customer, charge: Charge) -> tuple[str, str]:
     return subject, body
 
 
+def gift_card_purchased(*, code: str, amount_cents: int) -> tuple[str, str]:
+    """Build the (subject, body) of a gift-card-purchase confirmation, sent to the buyer (PRD)."""
+    subject = "Your gift card is ready"
+    body = (
+        f"Thanks for your purchase!\n\n"
+        f"Your gift card for {_format_cents(amount_cents)} is ready. "
+        f"Share this code to redeem it at checkout:\n\n"
+        f"{code}\n\n"
+        "Thanks,\nThe Orbit team"
+    )
+    return subject, body
+
+
 def _format_cents(amount_cents: int) -> str:
     dollars, cents = divmod(amount_cents, 100)
     return f"${dollars}.{cents:02d}"

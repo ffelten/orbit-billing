@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from orbit.billing.charges import Charge
-from orbit.notify.templates import payment_failed
+from orbit.notify.templates import gift_card_purchased, payment_failed
 
 PERIOD_START = datetime(2026, 1, 1, tzinfo=UTC)
 PERIOD_END = PERIOD_START + timedelta(days=30)
@@ -52,3 +52,21 @@ def test_payment_failed_formats_sub_dollar_amount() -> None:
     _, body = payment_failed(_Customer(name="Ada Lovelace"), _charge(9))
 
     assert "$0.09" in body
+
+
+def test_gift_card_purchased_returns_a_subject() -> None:
+    subject, _ = gift_card_purchased(code="ABCD1234EFGH", amount_cents=5000)
+
+    assert subject
+
+
+def test_gift_card_purchased_renders_the_code() -> None:
+    _, body = gift_card_purchased(code="ABCD1234EFGH", amount_cents=5000)
+
+    assert "ABCD1234EFGH" in body
+
+
+def test_gift_card_purchased_renders_amount_as_formatted_currency() -> None:
+    _, body = gift_card_purchased(code="ABCD1234EFGH", amount_cents=5000)
+
+    assert "$50.00" in body
