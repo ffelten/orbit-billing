@@ -25,4 +25,9 @@ throughout the code, docs, and commit messages. Use these terms precisely.
 - **Event** — an inbound webhook from the payment provider, reporting the
   outcome of an attempt to charge a customer.
 
+- **Gift card** — a prepaid balance, identified by a code, that a customer
+  buys and anyone holding the code can redeem at checkout. Redeemable
+  partially; the remainder stays on the card. Never expires (see ADR-0005:
+  stored-value products a customer buys set their own expiry).
+
 See `docs/adr/` for the rules that govern how these concepts interact.
