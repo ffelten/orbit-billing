@@ -261,4 +261,4 @@ def test_redemption_against_non_pending_charge_raises(status: ChargeStatus) -> N
 
 def to_cents(dollars: float) -> int:
     """Dollars to integer cents (ADR-0002)."""
-    return int(round(dollars * 100))
+    return round(dollars * 100)
