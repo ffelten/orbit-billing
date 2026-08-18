@@ -101,7 +101,7 @@ async def purchase_gift_card(
     code = generate_gift_card_code()
     row = await conn.fetchrow(
         """
-        INSERT INTO gift_cards (code, purchaser_customer_id, initial_amount_cents, balance_cents)
+        INSERT INTO gift_cards (code, purchaser_customer_id, face_value_cents, balance_cents)
         VALUES ($1, $2, $3, $3)
         RETURNING *
         """,
@@ -117,7 +117,7 @@ def _gift_card_from_row(row: asyncpg.Record) -> GiftCard:
         id=row["id"],
         code=row["code"],
         purchaser_customer_id=row["purchaser_customer_id"],
-        initial_amount_cents=row["initial_amount_cents"],
+        face_value_cents=row["face_value_cents"],
         balance_cents=row["balance_cents"],
         created_at=row["created_at"],
     )

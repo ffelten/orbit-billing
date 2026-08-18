@@ -12,13 +12,13 @@ class GiftCard(BaseModel):
     id: int
     code: str
     purchaser_customer_id: int
-    initial_amount_cents: int = Field(ge=0)
+    face_value_cents: int = Field(ge=0)
     balance_cents: int = Field(ge=0)
     created_at: datetime
 
     @model_validator(mode="after")
     def _check_balance(self) -> "GiftCard":
-        if self.balance_cents > self.initial_amount_cents:
-            msg = "balance_cents must not exceed initial_amount_cents"
+        if self.balance_cents > self.face_value_cents:
+            msg = "balance_cents must not exceed face_value_cents"
             raise ValueError(msg)
         return self

@@ -13,7 +13,7 @@ def test_gift_card_holds_balance_in_integer_cents() -> None:
         id=1,
         code="ABCD-1234",
         purchaser_customer_id=1,
-        initial_amount_cents=5000,
+        face_value_cents=5000,
         balance_cents=5000,
         created_at=CREATED_AT,
     )
@@ -27,13 +27,13 @@ def test_gift_card_allows_balance_below_initial_amount_after_partial_redemption(
         id=1,
         code="ABCD-1234",
         purchaser_customer_id=1,
-        initial_amount_cents=5000,
+        face_value_cents=5000,
         balance_cents=2000,
         created_at=CREATED_AT,
     )
 
     assert card.balance_cents == 2000
-    assert card.initial_amount_cents == 5000
+    assert card.face_value_cents == 5000
 
 
 def test_gift_card_rejects_balance_above_initial_amount() -> None:
@@ -42,7 +42,7 @@ def test_gift_card_rejects_balance_above_initial_amount() -> None:
             id=1,
             code="ABCD-1234",
             purchaser_customer_id=1,
-            initial_amount_cents=1000,
+            face_value_cents=1000,
             balance_cents=2000,
             created_at=CREATED_AT,
         )
@@ -54,7 +54,7 @@ def test_gift_card_rejects_negative_balance() -> None:
             id=1,
             code="ABCD-1234",
             purchaser_customer_id=1,
-            initial_amount_cents=5000,
+            face_value_cents=5000,
             balance_cents=-1,
             created_at=CREATED_AT,
         )
@@ -66,7 +66,7 @@ def test_gift_card_rejects_negative_initial_amount() -> None:
             id=1,
             code="ABCD-1234",
             purchaser_customer_id=1,
-            initial_amount_cents=-1,
+            face_value_cents=-1,
             balance_cents=0,
             created_at=CREATED_AT,
         )

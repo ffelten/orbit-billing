@@ -25,12 +25,12 @@ _PERIOD_START = datetime(2026, 1, 1, tzinfo=UTC)
 _PERIOD_END = _PERIOD_START + timedelta(days=30)
 
 
-def _gift_card(*, balance_cents: int, initial_amount_cents: int = 5000) -> GiftCard:
+def _gift_card(*, balance_cents: int, face_value_cents: int = 5000) -> GiftCard:
     return GiftCard(
         id=1,
         code="ABCD1234EFGH",
         purchaser_customer_id=1,
-        initial_amount_cents=initial_amount_cents,
+        face_value_cents=face_value_cents,
         balance_cents=balance_cents,
         created_at=_CREATED_AT,
     )
@@ -104,7 +104,7 @@ async def _seed_gift_card(conn: asyncpg.Connection, *, balance_cents: int) -> st
     code = generate_gift_card_code()
     await conn.execute(
         """
-        INSERT INTO gift_cards (code, purchaser_customer_id, initial_amount_cents, balance_cents)
+        INSERT INTO gift_cards (code, purchaser_customer_id, face_value_cents, balance_cents)
         VALUES ($1, $2, $3, $3)
         """,
         code,
@@ -161,7 +161,7 @@ async def test_purchase_gift_card_inserts_a_row_with_full_balance(
     )
 
     assert gift_card.purchaser_customer_id == customer_id
-    assert gift_card.initial_amount_cents == 5000
+    assert gift_card.face_value_cents == 5000
     assert gift_card.balance_cents == 5000
     assert _CODE_PATTERN.match(gift_card.code)
 
