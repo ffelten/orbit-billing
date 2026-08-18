@@ -1,0 +1,25 @@
+path_rules:
+  # Money moves here
+  - tier: critical
+    reason: "Money moves here"
+    patterns: ['(^|/)migrations?/', '\.sql$', '(^|/)billing/(charges|refunds|gift_cards)\.py$']
+
+  # Public API surface
+  - tier: high
+    reason: "Public API surface"
+    patterns: ['(^|/)api/']
+
+  # Templates and tests
+  - tier: low
+    reason: "Templates and tests"
+    patterns: ['(^|/)notify/templates\.py$', '(^|/)tests/']
+
+  # Docs
+  - tier: info
+    reason: "Docs"
+    patterns: ['\.md$']
+
+tier_overrides:
+  - pattern: 'assets/**'
+    tier: info
+    label: Static
