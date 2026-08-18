@@ -4,7 +4,7 @@
 
 Orbit is a deliberately small subscription-billing service (plans,
 customers, subscriptions, charges, provider webhooks, refunds). It exists
-so you can see what [Hervé](https://app.herve.review) does with a codebase
+so you can see what [Hervé](https://herve.review) does with a codebase
 where every line was written by an AI agent.
 
 ## Start here
