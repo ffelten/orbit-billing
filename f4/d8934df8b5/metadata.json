@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "f4d8934df8b5",
+  "strategy": "manual-commit",
+  "branch": "gift-cards",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/api/routes.py",
+    "src/orbit/billing/gift_cards.py",
+    "tests/api/conftest.py",
+    "tests/api/test_gift_cards_admin.py",
+    "tests/billing/test_gift_cards.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f4/d8934df8b5/0/metadata.json",
+      "transcript": "/f4/d8934df8b5/0/full.jsonl",
+      "compact_transcript": "/f4/d8934df8b5/0/transcript.jsonl",
+      "content_hash": "/f4/d8934df8b5/0/content_hash.txt",
+      "prompt": "/f4/d8934df8b5/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 94,
+    "cache_creation_tokens": 58421,
+    "cache_read_tokens": 3285886,
+    "output_tokens": 18821,
+    "api_call_count": 47
+  }
+}
