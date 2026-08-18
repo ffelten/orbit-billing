@@ -1,5 +1,6 @@
 """Gift card purchase and redemption (see CONTEXT.md: Gift card, docs/prd/gift-cards.md)."""
 
+import json
 import secrets
 import string
 
@@ -89,6 +90,11 @@ def redeem_gift_card_against_charge(
     return updated_card, updated_charge
 
 
+def _format_balance(cents: int) -> str:
+    """Render a cent balance as a dollar string for receipts."""
+    return f"${cents / 100:,.2f}"
+
+
 async def purchase_gift_card(
     conn: asyncpg.Connection, *, purchaser_customer_id: int, amount_cents: int
 ) -> GiftCard:
@@ -101,8 +107,9 @@ async def purchase_gift_card(
     code = generate_gift_card_code()
     row = await conn.fetchrow(
         """
-        INSERT INTO gift_cards (code, purchaser_customer_id, face_value_cents, balance_cents)
-        VALUES ($1, $2, $3, $3)
+        INSERT INTO gift_cards
+            (code, purchaser_customer_id, face_value_cents, balance_cents, expires_at)
+        VALUES ($1, $2, $3, $3, now() + interval '12 months')
         RETURNING *
         """,
         code,
@@ -137,6 +144,7 @@ def _gift_card_from_row(row: asyncpg.Record) -> GiftCard:
         face_value_cents=row["face_value_cents"],
         balance_cents=row["balance_cents"],
         created_at=row["created_at"],
+        expires_at=row["expires_at"],
     )
 
 

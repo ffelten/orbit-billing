@@ -15,6 +15,7 @@ class GiftCard(BaseModel):
     face_value_cents: int = Field(ge=0)
     balance_cents: int = Field(ge=0)
     created_at: datetime
+    expires_at: datetime | None = None
 
     @model_validator(mode="after")
     def _check_balance(self) -> "GiftCard":
