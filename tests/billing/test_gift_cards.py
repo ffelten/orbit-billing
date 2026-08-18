@@ -11,6 +11,7 @@ from orbit.billing.gift_cards import (
     GiftCardNotFoundError,
     InsufficientGiftCardBalanceError,
     RedemptionExceedsChargeAmountError,
+    bulk_issue_gift_cards,
     generate_gift_card_code,
     purchase_gift_card,
     redeem_gift_card,
@@ -169,6 +170,26 @@ async def test_purchase_gift_card_inserts_a_row_with_full_balance(
         "SELECT balance_cents FROM gift_cards WHERE id = $1", gift_card.id
     )
     assert stored_balance == 5000
+
+
+async def test_bulk_issue_gift_cards_creates_count_cards_of_the_given_amount(
+    db_conn: asyncpg.Connection,
+) -> None:
+    customer_id = await _seed_customer(db_conn)
+
+    gift_cards = await bulk_issue_gift_cards(
+        db_conn, purchaser_customer_id=customer_id, amount_cents=5000, count=3
+    )
+
+    assert len(gift_cards) == 3
+    assert {gc.face_value_cents for gc in gift_cards} == {5000}
+    assert {gc.balance_cents for gc in gift_cards} == {5000}
+    assert len({gc.code for gc in gift_cards}) == 3
+
+    stored_count = await db_conn.fetchval(
+        "SELECT count(*) FROM gift_cards WHERE purchaser_customer_id = $1", customer_id
+    )
+    assert stored_count == 3
 
 
 def test_generate_gift_card_code_is_twelve_uppercase_alphanumeric_chars() -> None:

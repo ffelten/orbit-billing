@@ -112,6 +112,23 @@ async def purchase_gift_card(
     return _gift_card_from_row(row)
 
 
+async def bulk_issue_gift_cards(
+    conn: asyncpg.Connection, *, purchaser_customer_id: int, amount_cents: int, count: int
+) -> list[GiftCard]:
+    """Issue `count` gift cards of `amount_cents` each to `purchaser_customer_id` in one call.
+
+    For finance issuing a batch of cards to a corporate client; all cards are
+    inserted in one transaction so a partial batch never lands.
+    """
+    async with conn.transaction():
+        return [
+            await purchase_gift_card(
+                conn, purchaser_customer_id=purchaser_customer_id, amount_cents=amount_cents
+            )
+            for _ in range(count)
+        ]
+
+
 def _gift_card_from_row(row: asyncpg.Record) -> GiftCard:
     return GiftCard(
         id=row["id"],

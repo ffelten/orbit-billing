@@ -2,14 +2,17 @@
 
 import logging
 import os
+import secrets
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Annotated
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from orbit.billing import dead_letter, metrics
+from orbit.billing.gift_cards import bulk_issue_gift_cards
 from orbit.billing.subscriptions import (
     PlanNotFoundError,
     SubscriptionNotFoundError,
@@ -24,6 +27,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _SIGNATURE_HEADER = "X-Provider-Signature"
+_ADMIN_KEY_HEADER = "X-Admin-Key"
+
+
+def require_admin_scope(scope: str) -> Callable[[Request], None]:
+    """Build a dependency that authorizes an admin request carrying `scope`.
+
+    There's no per-admin key management: one shared key, configured via
+    `ADMIN_API_KEY`, carries the scopes listed in `ADMIN_API_KEY_SCOPES`
+    (comma-separated). Good enough for the handful of finance/ops admin
+    endpoints this guards; revisit if that set grows.
+    """
+
+    def _check(request: Request) -> None:
+        supplied_key = request.headers.get(_ADMIN_KEY_HEADER)
+        configured_key = os.environ.get("ADMIN_API_KEY")
+        if not supplied_key or not configured_key or not secrets.compare_digest(
+            supplied_key, configured_key
+        ):
+            raise HTTPException(status_code=401, detail="missing or invalid admin key")
+
+        configured_scopes = {
+            s.strip() for s in os.environ.get("ADMIN_API_KEY_SCOPES", "").split(",")
+        }
+        if scope not in configured_scopes:
+            raise HTTPException(status_code=403, detail=f"admin key missing scope {scope!r}")
+
+    return _check
 
 
 @router.post("/webhooks/provider", status_code=202)
@@ -152,4 +182,49 @@ async def change_subscription_plan_route(
         previous_plan_id=result.previous_plan_id,
         new_plan_id=result.new_plan_id,
         prorated_amount_cents=result.prorated_amount_cents,
+    )
+
+
+class BulkIssueGiftCardsRequest(BaseModel):
+    purchaser_customer_id: int
+    amount_cents: int = Field(gt=0)
+    count: int = Field(gt=0, le=1000)
+
+
+class IssuedGiftCard(BaseModel):
+    id: int
+    code: str
+    face_value_cents: int
+
+
+class BulkIssueGiftCardsResponse(BaseModel):
+    gift_cards: list[IssuedGiftCard]
+
+
+@router.post(
+    "/admin/gift-cards/bulk",
+    status_code=201,
+    dependencies=[Depends(require_admin_scope("admin:gift-cards"))],
+)
+async def bulk_issue_gift_cards_route(
+    body: BulkIssueGiftCardsRequest,
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> BulkIssueGiftCardsResponse:
+    """Issue a batch of same-amount gift cards to one purchaser in a single call.
+
+    For finance issuing cards to a corporate client; guarded by the
+    `admin:gift-cards` scope since this bypasses the normal checkout purchase
+    path in `orbit.billing.gift_cards.purchase_gift_card`.
+    """
+    gift_cards = await bulk_issue_gift_cards(
+        conn,
+        purchaser_customer_id=body.purchaser_customer_id,
+        amount_cents=body.amount_cents,
+        count=body.count,
+    )
+    return BulkIssueGiftCardsResponse(
+        gift_cards=[
+            IssuedGiftCard(id=gc.id, code=gc.code, face_value_cents=gc.face_value_cents)
+            for gc in gift_cards
+        ]
     )
