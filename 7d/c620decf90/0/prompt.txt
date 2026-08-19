@@ -1,0 +1,5 @@
+Now implement gift card purchase and redemption in src/orbit/billing/gift_cards.py. A customer buys a gift card for any amount and receives a 12-character uppercase alphanumeric code; set expires_at at purchase to funded_at + 12 months (ADR-0005). Redeem at checkout: partial redemption allowed, remainder stays on the card; refuse an expired card with an explicit error (ADR-0005). Wire redemption through the existing charges flow. Per the PRD the buyer receives the code by email after purchase — add that confirmation email in src/orbit/notify/templates.py and wire it into the purchase path. Add tests. Use /tdd. Do NOT commit yet.
+
+---
+
+Looks good — implement all of it with /tdd, including the purchase confirmation email wired into the purchase path and the expired-card rejection on redeem. Run tests and ruff. Stop before committing.
