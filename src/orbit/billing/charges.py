@@ -4,6 +4,12 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, model_validator
 
 
+def assert_integer_cents(value: int) -> None:
+    """Reject non-integer or negative cents (ADR-0002)."""
+    if value < 0 or int(value) != value:
+        raise ValueError("amount must be a non-negative integer cents value")
+
+
 class ChargeStatus(StrEnum):
     PENDING = "pending"
     SUCCEEDED = "succeeded"
