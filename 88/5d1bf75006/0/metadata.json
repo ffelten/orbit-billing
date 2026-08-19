@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "885d1bf75006",
+  "session_id": "a5ec7dfd-86a8-46e0-abb3-f72a2ad74d7c",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-19T06:25:55.506404Z",
+  "branch": "gift-cards",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "src/orbit/models/gift_card.py",
+    "migrations/004_gift_cards.sql",
+    "src/orbit/billing/gift_cards.py",
+    "src/orbit/notify/templates.py",
+    "tests/models/test_gift_card.py",
+    "tests/billing/test_gift_cards.py",
+    "tests/notify/test_templates.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "4b7e307300a4",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 70,
+    "cache_creation_tokens": 47521,
+    "cache_read_tokens": 2106714,
+    "output_tokens": 10222,
+    "api_call_count": 35
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-19T06:25:55.493909Z",
+    "agent_lines": 30,
+    "agent_removed": 30,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 30,
+    "total_lines_changed": 60,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 277,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 84,
+        ".claude/skills/tdd/LICENSE": 21,
+        ".claude/skills/tdd/SKILL.md": 36,
+        ".claude/skills/tdd/mocking.md": 59,
+        ".claude/skills/tdd/tests.md": 77
+      }
+    }
+  ]
+}
