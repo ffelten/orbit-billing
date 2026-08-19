@@ -1,0 +1,140 @@
+Implement gift cards per docs/prd/gift-cards.md. Start with the table and the model. Plan first.
+
+---
+
+<task-notification>
+<task-id>abbc2d56bc54df46f</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-florian-Documents-orbit-billing/130e5cf4-0b7e-421e-954e-7c3915a46ca7/tasks/abbc2d56bc54df46f.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore models, migrations, and billing patterns" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## Summary of findings
+
+### 0. IMPORTANT — repo-state anomaly (check this first)
+
+Before anything else: `find`/`ls` show **no source files exist yet** for gift cards, but stale compiled bytecode is sitting in `__pycache__/` for files that were never committed:
+
+- `src/orbit/models/__pycache__/gift_card.cpython-313.pyc` — but `src/orbit/models/gift_card.py` does not exist
+- `src/orbit/billing/__pycache__/gift_cards.cpython-313.pyc` — but `src/orbit/billing/gift_cards.py` does not exist
+- `tests/models/__pycache__/test_gift_card.cpython-313-pytest-9.1.1.pyc`, `tests/billing/__pycache__/test_gift_cards.cpython-...pyc`, `tests/api/__pycache__/test_gift_cards_admin.cpython-...pyc`, `tests/api/__pycache__/conftest.cpython-...pyc` — none of these `.py` sources exist either (`tests/api/` currently contains *only* a `__pycache__` dir — no `__init__.py`, no `conftest.py`, no route tests at all).
+
+I confirmed via `git log --all -- &lt;path&gt;` that these files have **never existed in any commit on any branch** (local or remote-tracking). `git status` is clean. So this is leftover bytecode from some prior uncommitted work (possibly a previous agent run), not evidence of an existing implementation. **Don't design "on top of" a gift card model/module that you think already exists** — it needs to be built from scratch. Worth flagging to the user / deleting the stale `__pycache__` before proceeding so it doesn't cause confusion later.
+
+### 1. `src/orbit/models/` — pattern: Pydantic v2 `BaseModel`, no ORM
+
+Files: `__init__.py` (empty), `plan.py`, `subscription.py`.
+
+- Money column convention — `plan.py`:
+```python
+class Plan(BaseModel):
+    """A named price point.
+    Amounts are integer cents per ADR-0002; floats never touch money.
+    """
+    id: int
+    name: str
+    amount_cents: int = Field(ge=0)
+    interval: PlanInterval
+```
+- Timestamp/period convention — `subscription.py` uses `datetime`, a `StrEnum` for status, and a `model_validator(mode="after")` for cross-field invariants:
+```python
+class Subscription(BaseModel):
+    id: int
+    customer_id: int
+    plan_id: int
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    current_period_start: datetime
+    current_period_end: datetime
+
+    @model_validator(mode="after")
+    def _check_period(self) -&gt; "Subscription":
+        if self.current_period_end &lt;= self.current_period_start:
+            raise ValueError("current_period_end must be after current_period_start")
+        return self
+```
+No existing model has an `expires_at` field yet — ADR-0005 (below) implies one is expected on gift cards.
+
+No SQLAlchemy anywhere — persistence is 100% raw `asyncpg` SQL (see `db.py`, `idempotency.py`, etc.), and Pydantic models are pure in-memory domain objects built from `asyncpg.Record` rows manually (`_charge_from_row` pattern in `billing/idempotency.py`).
+
+### 2. `migrations/` — plain numbered `.sql` files, no framework
+
+`001_init.sql`, `002_webhook_dead_letters.sql`, `003_charge_outcome_counts.sql` — no up/down pairs, no migration tool (Alembic etc.); just sequential, additive SQL files concatenated by tests (`tests/conftest.py` globs and runs `migrations/*.sql` in order against a scratch schema). Convention: `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY`, `TIMESTAMPTZ NOT NULL DEFAULT now()`, `CHECK` constraints for enums and money (`amount_cents BIGINT NOT NULL CHECK (amount_cents &gt;= 0)`), FK columns named `&lt;table&gt;_id`, comments above each table explaining the "why" and citing the relevant ADR. Example (`003_charge_outcome_counts.sql`):
+```sql
+CREATE TABLE charge_outcome_counts (
+    day DATE NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('succeeded', 'failed')),
+    count BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, status)
+);
+```
+No table yet has an `expires_at` column — a gift_cards migration would be the first.
+
+### 3. Legacy coupon module — every reference
+
+- `src/orbit/billing/coupons.py` — the module itself: `_PERCENT_OFF` dict of hardcoded codes (`WELCOME10`, `ANNUAL20`), `UnknownCouponError`, `apply_coupon(amount_cents, code)`. Docstring literally says: *"It is slated for removal in favor of gift cards (see `docs/prd/gift-cards.md`)."*
+- `tests/billing/test_coupons.py` — 3 unit tests for `apply_coupon`.
+- `docs/prd/gift-cards.md` — PRD, item: "Remove the legacy coupon module."
+
+No API routes, DB tables, or model reference coupons anywhere (`grep -ril coupon` over `src`, `tests`, `migrations`, `docs` returned only those 3 files). So removal is just: delete `coupons.py` + `test_coupons.py`.
+
+### 4. `src/orbit/billing/`
+
+| file | purpose |
+|---|---|
+| `charges.py` | `Charge` Pydantic model + `ChargeStatus` state machine (`pending→succeeded|failed`), `transition_charge()` |
+| `idempotency.py` | ADR-0001: `derive_idempotency_key`, `get_or_create_charge_for_event` — inserts into `processed_events` with `ON CONFLICT ... DO NOTHING` to dedupe |
+| `webhooks.py` | Signature verification (HMAC constant-time compare), payload parsing, `receive_webhook()` — validates + writes only (ADR-0004) |
+| `worker.py` | ADR-0003 retry: `process_webhook_with_retry`, jittered exponential backoff, `MAX_ATTEMPTS = 5`, dead-letters on exhaustion |
+| `dead_letter.py` | CRUD for `webhook_dead_letters` table |
+| `metrics.py` | daily charge outcome counters (`charge_outcome_counts`) |
+| `subscriptions.py` | `change_subscription_plan` — plan changes + proration, `FOR UPDATE` row locking |
+| `proration.py` | pure function, integer-cents proration math |
+| `coupons.py` | legacy, to remove (see #3) |
+
+No existing balance/redemption/prepaid-credit logic — this would be new for gift cards. ADR-0001 (idempotency keys derived from a stable external ID, never regenerated on retry), ADR-0003 (max 5 retries w/ backoff, retries never create duplicate financial records), and ADR-0004 (handlers only validate+enqueue/write intent rows; only the worker does outbound calls) all apply as conventions a gift-card purchase/redemption flow should follow if it goes through the webhook/worker pipeline — though a straightforward "buy gift card" flow (no external provider call needed) may not need the worker/retry machinery at all, just idempotent DB writes.
+
+**ADR-0005** (`docs/adr/0005-prepaid-balances-expire.md`) is highly relevant and currently **conflicts with the PRD** — see call-out below.
+
+### 5. `src/orbit/api/routes.py` — one router, all endpoints in one file
+
+Pattern per endpoint: Pydantic request/response models defined inline above the route, `Annotated[asyncpg.Connection, Depends(get_connection)]` for DB, domain-specific exceptions caught and mapped to `HTTPException` status codes, module docstring citing ADR-0004. Existing routes: `POST /webhooks/provider`, `GET /webhooks/dead-letter`, `GET /metrics/charges`, `POST /subscriptions/{subscription_id}/plan`. No coupon/redeemable-code endpoints exist. A gift-card router would presumably follow this same file/style (or a new `orbit/api/` submodule) with `POST /gift-cards` (purchase), `POST /gift-cards/{code}/redeem`, etc.
+
+### 6. `src/orbit/notify/` — plain SMTP transport + template functions
+
+- `email.py`: `EmailSender` `Protocol` with `.send(to, subject, body)`; `SmtpEmailSender` (real, via `smtplib`) and `FakeEmailSender` (records sent messages, for tests) — dependency-injected, not wired to any business logic itself ("nothing in this module is wired to charges or webhooks — it is the send mechanism only. Callers decide when to use it.")
+- `templates.py`: pure functions returning `(subject, body)` tuples, e.g. `payment_failed(customer, charge)`; formats money only at this presentation edge via `_format_cents`. A gift-card-purchase email template would follow this same shape, e.g. `gift_card_purchased(customer, gift_card) -&gt; tuple[str, str]`.
+
+Nothing currently *calls* `EmailSender.send` from billing logic — the wiring itself (which caller triggers the send after a purchase) doesn't exist yet as a pattern to copy; you'd be establishing it.
+
+### 7. `tests/` structure and conventions
+
+- `tests/models/` — pure unit tests on Pydantic models, no DB (`test_plan.py`, `test_subscription.py`), using `pytest.raises(ValidationError)` / `pytest.raises(ValueError, match=...)`.
+- `tests/billing/` — mix of pure unit tests (`test_charges.py`, `test_proration.py`) and DB-integration tests using the `db_conn` fixture (`test_subscriptions.py`, seeding via raw INSERT helper functions like `_seed_plan`/`_seed_subscription`).
+- `tests/notify/` — pure unit tests against `FakeEmailSender` and template functions, no DB.
+- `tests/api/` — currently empty (no source files; see §0).
+- `tests/conftest.py` — the shared async DB fixture:
+```python
+@pytest.fixture
+async def db_conn() -&gt; AsyncIterator[asyncpg.Connection]:
+    conn = await asyncpg.connect(DATABASE_URL)
+    try:
+        await conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        await conn.execute(MIGRATIONS_SQL)
+        yield conn
+    finally:
+        await conn.close()
+```
+`pytest.ini_options` sets `asyncio_mode = "auto"` (pyproject.toml), so async test functions need no decorator. Tests use real Postgres (`DATABASE_URL`, default `REDACTED`) reset per test via migrations replay — not mocks/sqlite.
+
+### Critical conflict to resolve before designing the schema
+
+- **PRD** (`docs/prd/gift-cards.md`): *"Gift cards never expire."*
+- **ADR-0005** (`docs/adr/0005-prepaid-balances-expire.md`), current HEAD state on this branch (`gift-cards`, tip commit `c648dff` merging "restore-adr-0005" #23): *"Prepaid balances expire twelve months after the day they were funded... This applies to every stored-value product, gift cards included... Every table that stores a prepaid balance carries an `expires_at` timestamp... A product that needs a different horizon must supersede this ADR, not special-case it."*
+
+Git history shows this was litigated back and forth (`8e61f75` scoped ADR-0005 to exclude gift cards → `900a946` reverted that, explicitly re-including gift cards) and the currently-checked-out state says gift cards **are** covered by the 12-month expiry, directly contradicting the PRD's "never expire." This needs to be resolved with the user/PRD owner (either update the PRD, or supersede ADR-0005 as its own text prescribes) before you decide whether `gift_cards` gets an `expires_at NOT NULL` column. I'd surface this explicitly rather than silently picking one.</result>
+<usage><subagent_tokens>73438</subagent_tokens><tool_uses>43</tool_uses><duration_ms>155903</duration_ms></usage>
+</task-notification>
+
+---
+
+Follow ADR-0005 (option 1): add an expires_at column set at purchase to funded_at + 12 months, since ADR-0005 governs stored-value products including gift cards. The PRD line 'never expire' is stale — note that discrepancy briefly in the commit body. Implement the table and the model with /tdd. When tests pass and ruff is clean, commit as 'Add gift card table and model'.
