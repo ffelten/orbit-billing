@@ -9,7 +9,7 @@ where every line was written by an AI agent.
 
 ## Start here
 
-- The pull request [Add gift cards](<HERO_PR_URL>) — the feature this repo
+- The pull request [Add gift cards](https://github.com/ffelten/orbit-billing/pull/20) — the feature this repo
   was built to demo.
 - The issue [Gift cards](<PRD_ISSUE_URL>) — the PRD the PR was built from.
 - [`docs/adr/`](docs/adr/) — four decisions the agents were told to respect.
