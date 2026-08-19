@@ -8,6 +8,12 @@ import asyncpg
 from orbit.billing.proration import prorated_amount_cents
 
 
+def assert_integer_cents(value: int) -> None:
+    """Reject non-integer or negative cents (ADR-0002)."""
+    if value < 0 or int(value) != value:
+        raise ValueError("amount must be a non-negative integer cents value")
+
+
 class SubscriptionNotFoundError(Exception):
     """Raised when a subscription id does not exist."""
 

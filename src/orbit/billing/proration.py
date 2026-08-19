@@ -7,6 +7,12 @@ calculation, including intermediate values.
 from datetime import datetime
 
 
+def assert_integer_cents(value: int) -> None:
+    """Reject non-integer or negative cents (ADR-0002)."""
+    if value < 0 or int(value) != value:
+        raise ValueError("amount must be a non-negative integer cents value")
+
+
 def prorated_amount_cents(
     *,
     old_amount_cents: int,

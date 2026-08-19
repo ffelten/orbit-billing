@@ -10,7 +10,11 @@ class SubscriptionStatus(StrEnum):
 
 
 class Subscription(BaseModel):
-    """A customer on a plan, with a current period (see CONTEXT.md: Subscription)."""
+    """A customer on a plan, with a current period (see CONTEXT.md: Subscription).
+
+    The current period bounds the window a charge is raised for; ADR-0002 keeps
+    all amounts in integer cents.
+    """
 
     id: int
     customer_id: int
