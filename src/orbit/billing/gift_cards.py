@@ -29,6 +29,10 @@ class GiftCardExpiredError(Exception):
     """Raised when redemption is attempted against an expired gift card (ADR-0005)."""
 
 
+class CustomerNotFoundError(Exception):
+    """Raised when a customer id does not exist."""
+
+
 @dataclass(frozen=True, slots=True)
 class RedemptionResult:
     """The outcome of redeeming a gift card against a charge."""
@@ -74,6 +78,49 @@ async def purchase_gift_card(
         expires_at,
     )
     return _gift_card_from_row(row)
+
+
+async def issue_gift_cards_bulk(
+    conn: asyncpg.Connection,
+    *,
+    customer_id: int,
+    count: int,
+    face_value_cents: int,
+    funded_at: datetime,
+) -> list[GiftCard]:
+    """Issue `count` gift cards of `face_value_cents`, all owned by `customer_id`.
+
+    For corporate clients buying gift cards in bulk to distribute themselves
+    (see docs/prd/gift-cards.md and the admin bulk-issuance endpoint); every
+    card gets its own unique code but shares the purchaser's `customer_id` —
+    there is no unassigned-card concept. All inserts happen in a single
+    transaction, so a failure partway through issues none of them.
+    """
+    async with conn.transaction():
+        customer = await conn.fetchrow("SELECT id FROM customers WHERE id = $1", customer_id)
+        if customer is None:
+            raise CustomerNotFoundError(customer_id)
+
+        expires_at = funded_at + _EXPIRY
+        gift_cards = []
+        for _ in range(count):
+            row = await conn.fetchrow(
+                """
+                INSERT INTO gift_cards
+                    (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *
+                """,
+                customer_id,
+                generate_gift_card_code(),
+                face_value_cents,
+                face_value_cents,
+                funded_at,
+                expires_at,
+            )
+            gift_cards.append(_gift_card_from_row(row))
+
+    return gift_cards
 
 
 async def redeem_gift_card_for_charge(

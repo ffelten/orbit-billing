@@ -2,14 +2,16 @@
 
 import logging
 import os
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Annotated
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from orbit.billing import dead_letter, metrics
+from orbit.billing.gift_cards import CustomerNotFoundError, issue_gift_cards_bulk
 from orbit.billing.subscriptions import (
     PlanNotFoundError,
     SubscriptionNotFoundError,
@@ -24,6 +26,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _SIGNATURE_HEADER = "X-Provider-Signature"
+_ADMIN_SCOPES_HEADER = "X-Admin-Scopes"
+
+
+def require_admin_scope(scope: str) -> Callable[[Request], None]:
+    """Build a dependency that 403s unless `scope` was granted to the caller.
+
+    Scope grants are resolved upstream (API gateway or auth middleware) and
+    passed through as a comma-separated `X-Admin-Scopes` header; this
+    dependency only checks that the required scope is present, it does not
+    authenticate the caller.
+    """
+
+    def _require_admin_scope(request: Request) -> None:
+        granted = {
+            s.strip() for s in request.headers.get(_ADMIN_SCOPES_HEADER, "").split(",") if s.strip()
+        }
+        if scope not in granted:
+            raise HTTPException(status_code=403, detail=f"missing required scope: {scope}")
+
+    return _require_admin_scope
 
 
 @router.post("/webhooks/provider", status_code=202)
@@ -152,4 +174,59 @@ async def change_subscription_plan_route(
         previous_plan_id=result.previous_plan_id,
         new_plan_id=result.new_plan_id,
         prorated_amount_cents=result.prorated_amount_cents,
+    )
+
+
+class BulkIssueGiftCardsRequest(BaseModel):
+    customer_id: int
+    count: int = Field(gt=0, le=1000)
+    face_value_cents: int = Field(gt=0)
+
+
+class IssuedGiftCard(BaseModel):
+    id: int
+    code: str
+    face_value_cents: int
+    expires_at: datetime
+
+
+class BulkIssueGiftCardsResponse(BaseModel):
+    gift_cards: list[IssuedGiftCard]
+
+
+@router.post(
+    "/admin/gift-cards/bulk",
+    status_code=201,
+    dependencies=[Depends(require_admin_scope("admin:gift-cards"))],
+)
+async def bulk_issue_gift_cards_route(
+    body: BulkIssueGiftCardsRequest,
+    conn: Annotated[asyncpg.Connection, Depends(get_connection)],
+) -> BulkIssueGiftCardsResponse:
+    """Issue `count` gift cards of `face_value_cents`, all owned by `customer_id`.
+
+    For corporate clients buying gift cards in bulk to hand out themselves
+    (see docs/prd/gift-cards.md). Requires the `admin:gift-cards` scope.
+    """
+    try:
+        gift_cards = await issue_gift_cards_bulk(
+            conn,
+            customer_id=body.customer_id,
+            count=body.count,
+            face_value_cents=body.face_value_cents,
+            funded_at=datetime.now(UTC),
+        )
+    except CustomerNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="customer not found") from exc
+
+    return BulkIssueGiftCardsResponse(
+        gift_cards=[
+            IssuedGiftCard(
+                id=gc.id,
+                code=gc.code,
+                face_value_cents=gc.face_value_cents,
+                expires_at=gc.expires_at,
+            )
+            for gc in gift_cards
+        ]
     )

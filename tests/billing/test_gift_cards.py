@@ -5,9 +5,11 @@ import pytest
 
 from orbit.billing.charges import Charge, ChargeStatus, IllegalChargeTransitionError
 from orbit.billing.gift_cards import (
+    CustomerNotFoundError,
     GiftCardExpiredError,
     GiftCardNotFoundError,
     generate_gift_card_code,
+    issue_gift_cards_bulk,
     purchase_gift_card,
     redeem_gift_card_for_charge,
 )
@@ -47,6 +49,45 @@ async def test_purchase_gift_card_persists_balance_and_expiry(db_conn: asyncpg.C
         "SELECT balance_cents FROM gift_cards WHERE id = $1", gift_card.id
     )
     assert stored_balance == 5000
+
+
+async def test_issue_gift_cards_bulk_creates_one_card_per_count(
+    db_conn: asyncpg.Connection,
+) -> None:
+    customer_id = await _seed_customer(db_conn)
+
+    gift_cards = await issue_gift_cards_bulk(
+        db_conn,
+        customer_id=customer_id,
+        count=3,
+        face_value_cents=10000,
+        funded_at=FUNDED_AT,
+    )
+
+    assert len(gift_cards) == 3
+    assert {gc.customer_id for gc in gift_cards} == {customer_id}
+    assert {gc.face_value_cents for gc in gift_cards} == {10000}
+    assert {gc.balance_cents for gc in gift_cards} == {10000}
+    assert len({gc.code for gc in gift_cards}) == 3
+
+    stored_count = await db_conn.fetchval(
+        "SELECT count(*) FROM gift_cards WHERE customer_id = $1", customer_id
+    )
+    assert stored_count == 3
+
+
+async def test_issue_gift_cards_bulk_unknown_customer_raises(db_conn: asyncpg.Connection) -> None:
+    with pytest.raises(CustomerNotFoundError):
+        await issue_gift_cards_bulk(
+            db_conn,
+            customer_id=999999,
+            count=3,
+            face_value_cents=10000,
+            funded_at=FUNDED_AT,
+        )
+
+    stored_count = await db_conn.fetchval("SELECT count(*) FROM gift_cards")
+    assert stored_count == 0
 
 
 async def _seed_subscription(conn: asyncpg.Connection) -> int:
