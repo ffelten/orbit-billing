@@ -7,12 +7,12 @@ CREATE TABLE gift_cards (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     customer_id BIGINT NOT NULL REFERENCES customers (id),
     code TEXT NOT NULL UNIQUE,
-    amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
+    face_value_cents BIGINT NOT NULL CHECK (face_value_cents > 0),
     balance_cents BIGINT NOT NULL CHECK (balance_cents >= 0),
     funded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (balance_cents <= amount_cents),
+    CHECK (balance_cents <= face_value_cents),
     CHECK (expires_at > funded_at)
 );
 

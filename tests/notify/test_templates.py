@@ -27,13 +27,13 @@ def _charge(amount_cents: int) -> Charge:
     )
 
 
-def _gift_card(amount_cents: int, code: str = "ABCD1234EFGH") -> GiftCard:
+def _gift_card(face_value_cents: int, code: str = "ABCD1234EFGH") -> GiftCard:
     return GiftCard(
         id=1,
         customer_id=1,
         code=code,
-        amount_cents=amount_cents,
-        balance_cents=amount_cents,
+        face_value_cents=face_value_cents,
+        balance_cents=face_value_cents,
         funded_at=FUNDED_AT,
         expires_at=EXPIRES_AT,
     )

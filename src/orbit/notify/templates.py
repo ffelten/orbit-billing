@@ -34,7 +34,7 @@ def gift_card_purchased(customer: Customer, gift_card: GiftCard) -> tuple[str, s
     subject = "Your Orbit gift card is ready"
     body = (
         f"Hi {customer.name},\n\n"
-        f"Thanks for your purchase of a {_format_cents(gift_card.amount_cents)} gift card. "
+        f"Thanks for your purchase of a {_format_cents(gift_card.face_value_cents)} gift card. "
         "Here is the code:\n\n"
         f"  {gift_card.code}\n\n"
         "Share it with anyone — they can redeem it at checkout.\n\n"

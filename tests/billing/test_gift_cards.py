@@ -35,11 +35,11 @@ async def test_purchase_gift_card_persists_balance_and_expiry(db_conn: asyncpg.C
     gift_card = await purchase_gift_card(
         db_conn,
         customer_id=customer_id,
-        amount_cents=5000,
+        face_value_cents=5000,
         funded_at=FUNDED_AT,
     )
 
-    assert gift_card.amount_cents == 5000
+    assert gift_card.face_value_cents == 5000
     assert gift_card.balance_cents == 5000
     assert gift_card.expires_at == FUNDED_AT + timedelta(days=365)
 
@@ -102,7 +102,7 @@ async def _seed_charge(
 async def test_redeem_fully_covering_charge_settles_it(db_conn: asyncpg.Connection) -> None:
     customer_id = await _seed_customer(db_conn)
     gift_card = await purchase_gift_card(
-        db_conn, customer_id=customer_id, amount_cents=5000, funded_at=FUNDED_AT
+        db_conn, customer_id=customer_id, face_value_cents=5000, funded_at=FUNDED_AT
     )
     subscription_id = await _seed_subscription(db_conn)
     charge = await _seed_charge(db_conn, subscription_id, amount_cents=5000)
@@ -124,7 +124,7 @@ async def test_redeem_partial_leaves_remainder_and_charge_pending(
 ) -> None:
     customer_id = await _seed_customer(db_conn)
     gift_card = await purchase_gift_card(
-        db_conn, customer_id=customer_id, amount_cents=3000, funded_at=FUNDED_AT
+        db_conn, customer_id=customer_id, face_value_cents=3000, funded_at=FUNDED_AT
     )
     subscription_id = await _seed_subscription(db_conn)
     charge = await _seed_charge(db_conn, subscription_id, amount_cents=5000)
@@ -156,7 +156,7 @@ async def test_redeem_expired_card_raises_and_does_not_touch_balance(
 ) -> None:
     customer_id = await _seed_customer(db_conn)
     gift_card = await purchase_gift_card(
-        db_conn, customer_id=customer_id, amount_cents=5000, funded_at=FUNDED_AT
+        db_conn, customer_id=customer_id, face_value_cents=5000, funded_at=FUNDED_AT
     )
     subscription_id = await _seed_subscription(db_conn)
     charge = await _seed_charge(db_conn, subscription_id, amount_cents=5000)
@@ -176,7 +176,7 @@ async def test_redeem_expired_card_raises_and_does_not_touch_balance(
 async def test_redeem_against_non_pending_charge_raises(db_conn: asyncpg.Connection) -> None:
     customer_id = await _seed_customer(db_conn)
     gift_card = await purchase_gift_card(
-        db_conn, customer_id=customer_id, amount_cents=5000, funded_at=FUNDED_AT
+        db_conn, customer_id=customer_id, face_value_cents=5000, funded_at=FUNDED_AT
     )
     subscription_id = await _seed_subscription(db_conn)
     charge = await _seed_charge(db_conn, subscription_id, amount_cents=5000)

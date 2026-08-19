@@ -47,10 +47,10 @@ async def purchase_gift_card(
     conn: asyncpg.Connection,
     *,
     customer_id: int,
-    amount_cents: int,
+    face_value_cents: int,
     funded_at: datetime,
 ) -> GiftCard:
-    """Sell a gift card for `amount_cents`, funded now and expiring in twelve months (ADR-0005).
+    """Sell a gift card for `face_value_cents`, funded now and expiring in twelve months (ADR-0005).
 
     The code is returned to the caller to display at checkout; it is not
     emailed (see `orbit.notify.templates.gift_card_purchased` if that
@@ -62,14 +62,14 @@ async def purchase_gift_card(
     row = await conn.fetchrow(
         """
         INSERT INTO gift_cards
-            (customer_id, code, amount_cents, balance_cents, funded_at, expires_at)
+            (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
         """,
         customer_id,
         code,
-        amount_cents,
-        amount_cents,
+        face_value_cents,
+        face_value_cents,
         funded_at,
         expires_at,
     )
@@ -132,7 +132,7 @@ def _gift_card_from_row(row: asyncpg.Record) -> GiftCard:
         id=row["id"],
         customer_id=row["customer_id"],
         code=row["code"],
-        amount_cents=row["amount_cents"],
+        face_value_cents=row["face_value_cents"],
         balance_cents=row["balance_cents"],
         funded_at=row["funded_at"],
         expires_at=row["expires_at"],

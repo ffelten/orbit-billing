@@ -21,13 +21,13 @@ def test_gift_card_holds_balance_in_integer_cents() -> None:
         id=1,
         customer_id=1,
         code="ABCD-1234",
-        amount_cents=5000,
+        face_value_cents=5000,
         balance_cents=5000,
         funded_at=FUNDED_AT,
         expires_at=EXPIRES_AT,
     )
 
-    assert gift_card.amount_cents == 5000
+    assert gift_card.face_value_cents == 5000
     assert isinstance(gift_card.balance_cents, int)
 
 
@@ -37,7 +37,7 @@ def test_gift_card_rejects_non_positive_amount() -> None:
             id=1,
             customer_id=1,
             code="ABCD-1234",
-            amount_cents=0,
+            face_value_cents=0,
             balance_cents=0,
             funded_at=FUNDED_AT,
             expires_at=EXPIRES_AT,
@@ -50,7 +50,7 @@ async def test_gift_cards_table_accepts_a_valid_row(db_conn: asyncpg.Connection)
     gift_card_id = await db_conn.fetchval(
         """
         INSERT INTO gift_cards
-            (customer_id, code, amount_cents, balance_cents, funded_at, expires_at)
+            (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
         """,
@@ -75,7 +75,7 @@ async def test_gift_cards_table_rejects_balance_above_amount(db_conn: asyncpg.Co
         await db_conn.execute(
             """
             INSERT INTO gift_cards
-                (customer_id, code, amount_cents, balance_cents, funded_at, expires_at)
+                (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             """,
             customer_id,
@@ -92,7 +92,7 @@ async def test_gift_cards_table_rejects_duplicate_code(db_conn: asyncpg.Connecti
     await db_conn.execute(
         """
         INSERT INTO gift_cards
-            (customer_id, code, amount_cents, balance_cents, funded_at, expires_at)
+            (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
         VALUES ($1, $2, $3, $4, $5, $6)
         """,
         customer_id,
@@ -107,7 +107,7 @@ async def test_gift_cards_table_rejects_duplicate_code(db_conn: asyncpg.Connecti
         await db_conn.execute(
             """
             INSERT INTO gift_cards
-                (customer_id, code, amount_cents, balance_cents, funded_at, expires_at)
+                (customer_id, code, face_value_cents, balance_cents, funded_at, expires_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             """,
             customer_id,
@@ -125,7 +125,7 @@ def test_gift_card_rejects_expiry_before_funding() -> None:
             id=1,
             customer_id=1,
             code="ABCD-1234",
-            amount_cents=5000,
+            face_value_cents=5000,
             balance_cents=5000,
             funded_at=FUNDED_AT,
             expires_at=FUNDED_AT - timedelta(days=1),
@@ -138,7 +138,7 @@ def test_gift_card_rejects_balance_above_amount() -> None:
             id=1,
             customer_id=1,
             code="ABCD-1234",
-            amount_cents=5000,
+            face_value_cents=5000,
             balance_cents=5001,
             funded_at=FUNDED_AT,
             expires_at=EXPIRES_AT,
