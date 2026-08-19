@@ -1,5 +1,6 @@
 """Gift card purchase and redemption (see docs/prd/gift-cards.md, ADR-0005)."""
 
+import json
 import secrets
 import string
 from dataclasses import dataclass
